@@ -1,5 +1,10 @@
 $( document ).ready(function() {
     $("#checkPage").click(function(){
-	alert("Hello World");
-});
+	chrome.runtime.sendMessage({
+      		greeting: "hello"
+    	},
+    	function(response) {
+      		document.getElementById("div").textContent = response.msg;
+    });
+	});
 });
