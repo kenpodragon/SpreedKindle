@@ -1,0 +1,12 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Kreed: Speed reader for Kindle Cloud Reader</title>
+	<script src="jquery-2.1.4.min.js"></script>
+    <script src="kreedExtMenu.js"></script>
+  </head>
+  <body>
+    <h1>Kreed: Speed reader for Kindle Cloud Reader</h1>
+    <button id="checkPage">Speed read this page now!</button>
+  </body>
+</html>

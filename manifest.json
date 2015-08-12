@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "Kreed",
+  "description": "Speed reader plugin for Kindle Cloud Reader",
+  "version": "1.0",  
+  "browser_action": {
+   "name": "Kreed Kindle Cloud",
+   "icons": ["icon.png"],
+   "default_icon": "icon.png",
+   "default_popup": "kreedExtMenu.html"
+  },
+  "permissions": [
+   "activeTab"
+   ],
+  "content_scripts": [ {
+    "js": [ "contentscript.js" ],
+    "matches": [ "http://*/*", "https://*/*"]
+  }],
+  "web_accessible_resources": ["contentExtractor.js"]
+}

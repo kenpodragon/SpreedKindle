@@ -1,0 +1,11 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Kreed: Speed reader for Kindle Cloud Reader</title>
+    <script src="popup.js"></script>
+  </head>
+  <body>
+    <h1>Kreed: Speed reader for Kindle Cloud Reader</h1>
+    <button id="checkPage">Speed read this page now!</button>
+  </body>
+</html>
