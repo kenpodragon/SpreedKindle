@@ -1,22 +1,21 @@
-//Messaging from the back to the frunt
-var $readingContent;
-var $port;
+var $backPort;
+var $frontPort;
 
 chrome.runtime.onConnectExternal.addListener(function(port) {
-    port.onMessage.addListener(storeMsg); 
-    $port = port;    
+    port.onMessage.addListener(fromBack); 
+    $backPort = port;    
 });
 
-//Messaging function to pass information to other Extension scripts
-chrome.runtime.onMessage.addListener(
-        function(request, sender, sendResponse) {
-            if (request.greeting === "hello"){
-                $port.postMessage("You Cheese");
-                sendResponse({msg: $readingContent});
-    }
+chrome.extension.onConnect.addListener(function(port) {
+    port.onMessage.addListener(fromFront); 
+    $frontPort = port;    
 });
 
-function storeMsg(msg){
-    alert("Returned message: " + msg);
-    $readingContent = msg;
+function fromBack(msg){    
+    console.info(msg);
+    $frontPort.postMessage(msg);    
+}
+
+function fromFront(msg){   
+    $backPort.postMessage(msg);
 }

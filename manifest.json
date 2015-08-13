@@ -13,6 +13,7 @@
         "activeTab",
         "storage"
     ],
+    "minimum_chrome_version": "42",
     "content_scripts": [ {
             "js": [ "js/contentscript.js" ],
             "matches": [ "*://*.amazon.com/*"],

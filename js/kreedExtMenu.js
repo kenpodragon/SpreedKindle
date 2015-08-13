@@ -1,19 +1,20 @@
+var $port = chrome.extension.connect(chrome.runtime.id);
+$port.onMessage.addListener(fromBkgJS);
+
 $( document ).ready(function() {
     $("#checkPage").click(function(){
         getMsgFromBack();
     });
-    $("#viewOptions").click(function(){
-        var myid = chrome.runtime.id;
-        alert(myid);
-        //TODO: OPEN chrome://extensions/?options=Extension-ID
+    $("#viewOptions").click(function(){        
+        chrome.runtime.openOptionsPage(function(){});
     });    
 });
 
 //Function to retrieve information from background.js
-function getMsgFromBack(){
-    chrome.runtime.sendMessage({greeting: "hello" }, processResponse);
+function getMsgFromBack(){    
+    $port.postMessage("Cheese");    
 }
 
-function processResponse(response){
-    alert("processed msg: " +response.msg);
+function fromBkgJS(msg){    
+    alert("kreed Message recieved: " + msg);
 }

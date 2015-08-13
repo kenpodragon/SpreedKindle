@@ -8,7 +8,17 @@ function myMain(evt) {
     $port.onMessage.addListener(processMessage);      
 };
 
-function processMessage(msg){
-    alert("Alerted Message"+msg);
-    $port.postMessage("Cheese Long Time"); 
+function processMessage(msg){    
+    $port.postMessage(extractContents()); 
+}
+
+function extractContents(){
+    var str = $('body').text();
+    str = str.replace(/\s+/g, '');
+    
+    /*$('.k4w').each(function(){       
+        str += 1;
+    });*/
+    
+    return str;   
 }
