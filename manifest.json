@@ -11,7 +11,8 @@
     },
     "permissions": [
         "activeTab",
-        "storage"
+        "storage",
+        "tabs"
     ],
     "minimum_chrome_version": "42",
     "content_scripts": [ {
@@ -24,8 +25,28 @@
         "matches": ["*://*.amazon.com/*"]
     },
     "background": {
-        "scripts": ["js/jquery-2.1.4.min.js","js/background.js"]
+        "scripts": ["js/jquery-2.1.4.min.js","js/background.js"],
+        "matches": [ "*://*.amazon.com/*"],
+        "persistent": false
     },
     "web_accessible_resources": ["js/contentExtractor.js"],
-    "options_page": "menus/options.html"
+    "options_page": "menus/options.html",
+    "commands": {
+        "kreed-speed-UP": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+Up"
+            },
+            "description": "Increase reading speed"
+        },"kreed-speed-Down": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+Down"
+            },
+            "description": "Decrease reading speed"
+        },"kreed-read-this-page": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+Space"
+            },
+            "description": "Speed read this "
+        }
+    }
 }
