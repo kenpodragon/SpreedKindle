@@ -1,10 +1,10 @@
 {
     "manifest_version": 2,
-    "name": "Kreed",
+    "name": "Kreeder",
     "description": "Speed reader plugin for Kindle Cloud Reader",
     "version": "1.0",  
     "browser_action": {
-        "name": "Kreed Kindle Cloud",
+        "name": "Kreeder Kindle Cloud Speed Reader",
         "icons": ["icons/icon.png"],
         "default_icon": "icons/icon.png",
         "default_popup": "menus/kreedExtMenu.html"

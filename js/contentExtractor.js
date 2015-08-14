@@ -14,7 +14,7 @@ function processMessage(msg){
     else if (msg==="prev")
         goPrev();
     else if (msg==="ext")
-        $port.postMessage(extractContents()); 
+        $port.postMessage({type: "ext", contents: extractContents()}); 
 }
 
 function extractContents(){   

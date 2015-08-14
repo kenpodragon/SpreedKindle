@@ -1,5 +1,5 @@
 $( document ).ready(function() {
-    $("#viewOptions").click(function(){        
+    $("#about").click(function(){        
         chrome.runtime.openOptionsPage(function(){});
     });
     $("#openReader").click(function(){        
