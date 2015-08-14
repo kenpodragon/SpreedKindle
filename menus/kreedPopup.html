@@ -14,22 +14,58 @@ and open the template in the editor.
         <link rel="stylesheet" type="text/css" href="..\css\kreedMain.css">
     </head>
     <body>
-        <h1>Kreeder: Speed reader for Kindle Cloud Reader</h1>        
-        <button id="nextPage" class="btn">Goto Next Page.</button>
-        <button id="previousPage" class="btn">Goto Previous Page</button>
-        <button id="speedUp" class="btn">Speed Up</button>  
-        <button id="speedDown" class="btn">Speed Down</button>
-        <button id="fontBigger" class="btn">Font Bigger</button>  
-        <button id="fontSmaller" class="btn">Font Smaller</button>
-        <button id="numWordsUp" class="btn">Num Words Up</button>
-        <button id="numWordsDown" class="btn">Num Words Down</button>
-        <input id="fontTypeChooser"/>
-        <button id="setFontType" class="btn">Set Font Type</button>
-        <input id="bgColorChooser"/>
-        <button id="setBackground" class="btn">Set Background</button>
-        <input id="fgColorChooser"/>
-        <button id="setForeground" class="btn">Set Foreground</button>
-        <button id="extractPage" class="btn">Speed read this page now!</button>    
-        <button id="about" class="btn">About Kreeder</button>
+        <h1>Kreeder: Speed reader for Kindle Cloud Reader</h1>
+        <div id="Variables">
+            <table>
+                <tbody>
+                    <tr>
+                        <td>Speed</td>
+                        <td>Word Count</td>
+                        <td>Font Size</td>
+                    </tr>
+                    <tr>
+                        <td>                            
+                            <button id="speedUp" class="btn">+</button> 
+                            <div id="spdDisp">500</div>
+                            <button id="speedDown" class="btn">-</button>      
+                        </td>
+                        <td>
+                            <button id="numWordsUp" class="btn">+</button>         
+                            <div id="wctDisp">1</div>
+                            <button id="numWordsDown" class="btn">-</button>                            
+                        </td>
+                        <td>
+                            <button id="fontBigger" class="btn">+</button>
+                            <div id="fntDisp">20</div>
+                            <button id="fontSmaller" class="btn">-</button>                            
+                        </td>
+                    </tr>
+                </tbody>
+            </table>           
+        </div>
+        <div id="wordDisplay"></div>
+        <div id="playerControl">
+            <button id="previousPage" class="btn">Goto Previous Page</button>  
+            <button id="rewindWord" class ="btn">&lt;&lt;</button>
+            <button id="playPause" class ="btn">PLAY/PAUSE</button>
+            <button id="stop" class ="btn">STOP</button>
+            <button id="forwardWord" class ="btn">&gt;&gt;</button>            
+            <button id="extractPage" class="btn">Speed read this page now!</button>
+            <button id="nextPage" class="btn">Goto Next Page.</button>            
+        </div>       
+        <div id="functionButtons">                     
+            <input id="fontTypeChooser"/>
+            <button id="setFontType" class="btn">Set Font Type</button>
+            <input id="bgColorChooser"/>
+            <button id="setBackground" class="btn">Set Background</button>
+            <input id="fgColorChooser"/>
+            <button id="setForeground" class="btn">Set Foreground</button>
+            <label>
+                <input type="checkbox" id="autoAdvance"/>
+                Auto Advance to the Next Page.
+            </label>
+            
+        </div>
+        <div id="footer"><button id="about" class="btn">About Kreeder</button></div>
     </body>
 </html>
