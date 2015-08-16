@@ -12,6 +12,7 @@ and open the template in the editor.
         <script src="..\js\jquery-2.1.4.min.js"></script>
         <script src="..\js\kreedPopup.js"></script>
         <link rel="stylesheet" type="text/css" href="..\css\kreedMain.css">
+        <link rel="stylesheet" type="text/css" href="..\css\kreedPopup.css">
     </head>
     <body>
         <h1>Kreeder: Speed reader for Kindle Cloud Reader</h1>
@@ -47,19 +48,22 @@ and open the template in the editor.
         <div id="playerControl">
             <button id="previousPage" class="btn">Goto Previous Page</button>  
             <button id="rewindWord" class ="btn">&lt;&lt;</button>
-            <button id="playPause" class ="btn">PLAY/PAUSE</button>
+            <button id="playPause" class ="btn">PLAY</button>
             <button id="stop" class ="btn">STOP</button>
             <button id="forwardWord" class ="btn">&gt;&gt;</button>            
-            <button id="extractPage" class="btn">Speed read this page now!</button>
+            
             <button id="nextPage" class="btn">Goto Next Page.</button>            
         </div>       
         <div id="functionButtons">                     
+            <!--
             <input id="fontTypeChooser"/>
             <button id="setFontType" class="btn">Set Font Type</button>
             <input id="bgColorChooser"/>
             <button id="setBackground" class="btn">Set Background</button>
             <input id="fgColorChooser"/>
             <button id="setForeground" class="btn">Set Foreground</button>
+            -->
+            <button id="extractPage" class="btn">Speed read this page now!</button>
             <label>
                 <input type="checkbox" id="autoAdvance"/>
                 Auto Advance to the Next Page.

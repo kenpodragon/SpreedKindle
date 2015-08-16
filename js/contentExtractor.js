@@ -14,7 +14,9 @@ function processMessage(msg){
     else if (msg==="prev")
         goPrev();
     else if (msg==="ext")
-        $port.postMessage({type: "ext", contents: extractContents()}); 
+        $port.postMessage({type: "ext", contents: extractContents()});
+    else if (msg==="loc")
+        $port.postMessage({type: "loc", contents: extractLoc()}); 
 }
 
 function extractContents(){   
@@ -34,6 +36,10 @@ function extractContents(){
             });
     });        
     return output;   
+}
+
+function extractLoc(){
+    return $("#kindleReader_immersiveFooter").text();    
 }
 
 function goNext(){

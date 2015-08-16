@@ -32,7 +32,7 @@ $( document ).ready(function() {
     $("#numWordsDown").click(function(){
         numWordsDown();
     });
-    $("#setFontType").click(function(){
+    /*$("#setFontType").click(function(){
         setFontType("ARIAL");
     });
     $("#setBackground").click(function(){
@@ -40,7 +40,7 @@ $( document ).ready(function() {
     });
     $("#setForeground").click(function(){
         setForeground("COLOR");
-    });
+    });*/
     $("#rewindWord").click(function(){
         rewindWord();
     });
@@ -54,7 +54,7 @@ $( document ).ready(function() {
         forwardWord();
     });
     $("#autoAdvance").click(function(){
-        setAutoAdvance();
+        setAutoAdvance(document.getElementById('autoAdvance').checked);
     });    
 });
 
@@ -70,57 +70,136 @@ function fromBkgJS(msg){
         speedUp();
     else if (msg.type ==="spdDwn")
         speedDown();
+    else if (msg.type ==="loc")
+        setLoc(msg.contents);
 }
 
 function processExtractedText(contents){
-    //TODO: Need to smush punctuation together
-    //TODO: "open parens to the next word
-    //TODO: closed parens to the previous word
-    //TODO: period/comma/semicolon/colon/exclaimation point to the previous word
-    //TODO: ' merge word before and after
-    $words = contents;
+    //TODO: looks like some words are going missing
+    $words = contents.join(" ")
+        .replace(/[\u2018\u2019\u201A]/g, "\'")
+        .replace(/[\u201C\u201D\u201E]/g, "\"")
+        .replace(/\u2026/g, "...")
+        .replace(/[\u2013\u2014]/g, "-")
+        .replace(/\u02C6/g, "^")
+        .replace(/\u2039/g, "<")
+        .replace(/\u203A/g, ">")
+        .replace(/[\u02DC\u00A0]/g, " ")
+        .replace(/(\W)\s+/g, "$1")
+        .replace(/\s+(\W)/g, "$1")
+        .replace(/[,;:.!?]([^\s^"])/g, ", $1")
+        .replace(/\."/g, '." ')
+        .replace(/\?"/g, '?" ')
+        .replace(/!"/g, '!" ')
+        .replace(/""/g, '" "')        
+        .trim().split(" ");
+    $loc = 0;    
     $playing = false;
     playPause();
 }
 
-function fetchNextPage(){
-    //TODO: test and see if the next page actually exists
-    //TODO: extract LOC out of the window and use as test variable
-    //TODO: if no other next page set playing = false
-    getMsgFromBack("next");
-    //TODO: extract contents
+function fetchNextPage(){    
+    $playing = false;
+    getMsgFromBack("next");    
+    setTimeout(function(){
+       processNextPage(); 
+    },PAGE_FETCH_TIMEOUT);
 }
 
 function fetchPreviousPage(){
+    $playing = false;
     getMsgFromBack("prev");
+    setTimeout(function(){
+       processNextPage(); 
+    },PAGE_FETCH_TIMEOUT);      
+}
+
+function processNextPage(){
+    getCurrentLoc(); 
+    getMsgFromBack("ext");  
 }
 
 function getCurrentPageContents(){
+    if($playing===true)
+        return;
     getMsgFromBack("ext");    
 }
 
+function getCurrentLoc(){
+    getMsgFromBack("loc");  
+}
+
 function rewindWord(){
-    //TODO: only available when playing = false
-    $loc --;
-    if($loc > 0)
+    if($playing) return;    
+    $loc -= 2* kreederVars.wCount;
+    if($loc < 0)
         $loc = 0;
-    updateVariableDisplay();
+    if(hasNextBlock()){
+        displayWord(getNextWords());
+    }
 }
 
 function playPause(){
     //TODO: Change icon when playing or pausing
     if($playing){
         $playing = false;
+        $("#playPause").text("Play");
         return;
     }
-    $playing = true;    
+    $playing = true;
+    $("#playPause").text("Pause");
     wordPlayer();
 }
 
 function wordPlayer(){
-    //TODO: while playing = true do loop
-    //TODO: if end of words arrives then check status of next page
-    //TODO: if auto play enabled then fetch next/page and play otherwise stop
+    if(!$playing)
+        return;
+    if(hasNextBlock()){
+        //TODO: formula corrections
+        var dispDelay = calculateWPM();
+        displayWord(getNextWords());
+        updateVariableDisplay();
+        setTimeout(function(){
+        wordPlayer(); 
+            },dispDelay);
+    } else {
+        $playing = false;
+        if(kreederVars.autoAdvance)
+            fetchNextPage();
+    }    
+}
+
+function calculateWPM(){
+    return 60*2000 / kreederVars.speed;
+}
+
+function getNextWords(){
+    var output = [];
+    var counter = 1;
+    while (counter <= kreederVars.wCount && $loc-1 < $words.length){
+        output.push($words[$loc]);
+        counter ++;
+        $loc ++;
+    }
+    return output;
+}
+
+function hasNextBlock(){
+    return $loc-1 < $words.length;    
+}
+
+function displayWord(words){
+    $("#wordDisplay").text(words.join(" "));
+}
+
+var $currentLoc = 0;
+var $oldLoc = 0;
+function setLoc(newLoc){
+    $oldLoc = $currentLoc;
+    $currentLoc = newLoc;
+    if($oldLoc === $currentLoc){
+        setAutoAdvance(false);
+    }        
 }
 
 function stopPlayback(){
@@ -129,18 +208,17 @@ function stopPlayback(){
 }
 
 function forwardWord(){
-    //TODO: only available when playing = false
-    $loc ++;
-    if($loc >= $words.length)
-        $loc = $words.length -1;
-    updateVariableDisplay();
+    if($playing) return;
+    if(hasNextBlock()){
+        displayWord(getNextWords());
+    }
 }
 
 var $playing = false;
 var $words = [];
 var $loc = 0;
 var kreederVars = {
-    speed: 15,
+    speed: 500,
     fontsize: 20,
     wCount: 1,
     bkgColor: "blue",
@@ -149,7 +227,7 @@ var kreederVars = {
     autoAdvance : true
 };
 
-var SPEED_INC = 10;
+var SPEED_INC = 50;
 var MAX_LIMIT = 1500;
 var MIN_LIMIT = 10;
 var FONT_INC = 1;
@@ -158,6 +236,7 @@ var MIN_FONT_SIZE = 1;
 var WCOUNT_INC = 1;
 var MAX_WCONT = 5;
 var MIN_WCONT = 1;
+var PAGE_FETCH_TIMEOUT = 500;
 
 function speedUp(){       
     kreederVars.speed += SPEED_INC;
@@ -207,6 +286,7 @@ function numWordsDown(){
     updateVariableDisplay();
 }
 
+/*
 function setFontType(type){
     //TODO: drop down menu
     kreederVars.fontType = $("#fontTypeChooser").text();    
@@ -227,16 +307,17 @@ function setForeground(color){
     chrome.storage.sync.set({ fgColor: kreederVars.fgColor});
     updateVariableDisplay();
 }
+*/
 
-function setAutoAdvance(){    
-    kreederVars.autoAdvance = document.getElementById('autoAdvance').checked;    
+function setAutoAdvance(value){    
+    kreederVars.autoAdvance = value;    
     chrome.storage.sync.set({ autoAdvance: kreederVars.autoAdvance});
     updateVariableDisplay();
 }
 
 function load_options() {
     chrome.storage.sync.get({
-        speed: 15,
+        speed: 500,
         fontsize: 20,
         wCount: 1,
         bkgColor: "blue",
@@ -262,7 +343,8 @@ function updateVariableDisplay(){
     $("#wctDisp").text(kreederVars.wCount);
     $("#fntDisp").text(kreederVars.fontsize);
     document.getElementById('autoAdvance').checked = kreederVars.autoAdvance;
-    //TODO: show current word
+    //TODO: refresh font size for display page
 }
 
 document.addEventListener('DOMContentLoaded', load_options);
+document.addEventListener('DOMContentLoaded', getCurrentPageContents);

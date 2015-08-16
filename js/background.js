@@ -42,7 +42,9 @@ function openPopup(){
             chrome.windows.create({
                 tabId: tab.id,
                 type: 'popup',
-                focused: true                
+                focused: true,
+                width: 700,
+                height: 500
             },
             function(chromeWindow) {                    
                 kreedPopup = chromeWindow.id;
