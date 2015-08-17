@@ -9,13 +9,13 @@ and open the template in the editor.
         <title>Kreeder - Kindle Speed Reader Plugin</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
         <script src="..\js\jquery-2.1.4.min.js"></script>
         <script src="..\js\kreedPopup.js"></script>
         <link rel="stylesheet" type="text/css" href="..\css\kreedMain.css">
-        <link rel="stylesheet" type="text/css" href="..\css\kreedPopup.css">
+        <link rel="stylesheet" type="text/css" href="..\css\kreedPopup.css">        
     </head>
     <body>
-        <h1>Kreeder: Speed reader for Kindle Cloud Reader</h1>
         <div id="Variables">
             <table>
                 <tbody>
@@ -44,15 +44,20 @@ and open the template in the editor.
                 </tbody>
             </table>           
         </div>
-        <div id="wordDisplay"></div>
+        <div id="wordDisplay">Kreeder</div>
         <div id="playerControl">
-            <button id="previousPage" class="btn">Goto Previous Page</button>  
-            <button id="rewindWord" class ="btn">&lt;&lt;</button>
-            <button id="playPause" class ="btn">PLAY</button>
-            <button id="stop" class ="btn">STOP</button>
-            <button id="forwardWord" class ="btn">&gt;&gt;</button>            
-            
-            <button id="nextPage" class="btn">Goto Next Page.</button>            
+            <table>
+                <tbody>
+                    <tr>
+                        <td><button id="previousPage" class="btn">Goto Previous Page</button> </td>
+                        <td><button id="rewindWord" class ="btn">&lt;&lt;</button></td>
+                        <td><button id="playPause" class ="btn">PLAY</button></td>
+                        <td><button id="stop" class ="btn">STOP</button></td>
+                        <td><button id="forwardWord" class ="btn">&gt;&gt;</button></td>
+                        <td><button id="nextPage" class="btn">Goto Next Page.</button> </td>
+                    </tr>
+                </tbody>
+            </table>   
         </div>       
         <div id="functionButtons">                     
             <!--
@@ -67,8 +72,7 @@ and open the template in the editor.
             <label>
                 <input type="checkbox" id="autoAdvance"/>
                 Auto Advance to the Next Page.
-            </label>
-            
+            </label>            
         </div>
         <div id="footer"><button id="about" class="btn">About Kreeder</button></div>
     </body>

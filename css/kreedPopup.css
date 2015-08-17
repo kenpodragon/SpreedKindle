@@ -9,11 +9,26 @@ and open the template in the editor.
 */
 
 html, body {
-    width: 600px;
-    height: 400px;
+    width: 100%;    
 }
 
-body, #wordDisplay, #footer, #playerControl, #functionButtons{
-   width: 100%;
-    margin: auto;   
+body, #footer, #playerControl, #functionButtons{   
+   text-align: center;
+   width: 600px;
+   margin: 0 auto;
 }
+
+#playerControl{
+    width: 425px;
+    margin: 0 auto; 
+}
+
+#wordDisplay{
+    text-align: center;
+    font-size: 45px;
+    font-weight: bold;   
+    margin: 20px;
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+

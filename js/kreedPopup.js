@@ -87,10 +87,15 @@ function processExtractedText(contents){
         .replace(/[\u02DC\u00A0]/g, " ")
         .replace(/(\W)\s+/g, "$1")
         .replace(/\s+(\W)/g, "$1")
-        .replace(/[,;:.!?]([^\s^"])/g, ", $1")
+        .replace(/[,]([^\s^"])/g, ", $1")
+        .replace(/[;]([^\s^"])/g, "; $1")
+        .replace(/[:]([^\s^"])/g, ": $1")
+        .replace(/[.]([^\s^"])/g, ". $1")
+        .replace(/[!]([^\s^"])/g, "! $1")
+        .replace(/[?]([^\s^"])/g, "? $1")
         .replace(/\."/g, '." ')
         .replace(/\?"/g, '?" ')
-        .replace(/!"/g, '!" ')
+        .replace(/\!"/g, '!" ')
         .replace(/""/g, '" "')        
         .trim().split(" ");
     $loc = 0;    
@@ -157,7 +162,10 @@ function wordPlayer(){
     if(hasNextBlock()){
         //TODO: formula corrections
         var dispDelay = calculateWPM();
-        displayWord(getNextWords());
+        var wordsToDisplay = getNextWords();
+        if(PUNCT_PATTERN.test(wordsToDisplay))
+            dispDelay = dispDelay*(1+PUNCT_DELAY/100);
+        displayWord(wordsToDisplay);
         updateVariableDisplay();
         setTimeout(function(){
         wordPlayer(); 
@@ -169,8 +177,11 @@ function wordPlayer(){
     }    
 }
 
+var PUNCT_PATTERN = /[.?!,:;]/;
+var PUNCT_DELAY = 50;
+
 function calculateWPM(){
-    return 60*2000 / kreederVars.speed;
+    return 60*1500 / kreederVars.speed;
 }
 
 function getNextWords(){
@@ -219,7 +230,7 @@ var $words = [];
 var $loc = 0;
 var kreederVars = {
     speed: 500,
-    fontsize: 20,
+    fontsize: 45,
     wCount: 1,
     bkgColor: "blue",
     fgColor: "yellow",
@@ -231,7 +242,7 @@ var SPEED_INC = 50;
 var MAX_LIMIT = 1500;
 var MIN_LIMIT = 10;
 var FONT_INC = 1;
-var MAX_FONT_SIZE = 50;
+var MAX_FONT_SIZE = 125;
 var MIN_FONT_SIZE = 1;
 var WCOUNT_INC = 1;
 var MAX_WCONT = 5;
@@ -318,7 +329,7 @@ function setAutoAdvance(value){
 function load_options() {
     chrome.storage.sync.get({
         speed: 500,
-        fontsize: 20,
+        fontsize: 45,
         wCount: 1,
         bkgColor: "blue",
         fgColor: "yellow",
@@ -343,6 +354,7 @@ function updateVariableDisplay(){
     $("#wctDisp").text(kreederVars.wCount);
     $("#fntDisp").text(kreederVars.fontsize);
     document.getElementById('autoAdvance').checked = kreederVars.autoAdvance;
+    $("#wordDisplay").css({'font-size':kreederVars.fontsize + "px"});
     //TODO: refresh font size for display page
 }
 
