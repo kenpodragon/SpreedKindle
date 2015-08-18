@@ -23,7 +23,7 @@
     ],
     "minimum_chrome_version": "42",
     "content_scripts": [ {
-            "js": [ "js/contentscript.js" ],
+            "js": [ "js/contentscript.min.js" ],
             "matches": [ "*://*.amazon.com/*"],
             "run_at": "document_end",
             "all_frames": true
@@ -32,11 +32,11 @@
         "matches": ["*://*.amazon.com/*"]
     },
     "background": {
-        "scripts": ["js/jquery-2.1.4.min.js","js/background.js"],
+        "scripts": ["js/jquery-2.1.4.min.js","js/background.min.js"],
         "matches": [ "*://*.amazon.com/*"],
         "persistent": false
     },
-    "web_accessible_resources": ["js/contentExtractor.js"],
+    "web_accessible_resources": ["js/contentExtractor.min.js"],
     "options_page": "menus/options.html",
     "commands": {
         "kreed-speed-UP": {
