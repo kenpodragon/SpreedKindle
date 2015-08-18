@@ -2,13 +2,18 @@ var $port = chrome.extension.connect(chrome.runtime.id);
 $port.onMessage.addListener(fromBkgJS);
 
 $( document ).ready(function() {
+
+
     $("#nextPage").click(function(){
         fetchNextPage();
     });
     $("#previousPage").click(function(){
         fetchPreviousPage();
     });
-    $("#extractPage").click(function(){
+    $('body').delegate('#extractNextPage', 'click', function(event) {
+        $('#nextPage').click();
+    });
+    $('#extractPage').click(function(){        
         getCurrentPageContents();
     });
     $("#about").click(function(){        
@@ -55,7 +60,10 @@ $( document ).ready(function() {
     });
     $("#autoAdvance").click(function(){
         setAutoAdvance(document.getElementById('autoAdvance').checked);
-    });    
+    });
+    $('#autoadvanceoff, #autoadvanceon').click(function(){
+        $("#autoAdvance").click();
+    });
 });
 
 //Function to retrieve information from background.js
@@ -124,10 +132,21 @@ function processNextPage(){
     getMsgFromBack("ext");  
 }
 
+
+var interval = '';
 function getCurrentPageContents(){
-    if($playing===true)
+    if($playing===true && $('#wordDisplay').text() != '')
         return;
-    getMsgFromBack("ext");    
+
+    interval = setInterval(function(){
+        if ($('#wordDisplay').text() != '')
+            clearInterval(interval);
+        else
+            getMsgFromBack("ext");
+    }, 1000);
+
+    getMsgFromBack("ext");
+        
 }
 
 function getCurrentLoc(){
@@ -148,11 +167,11 @@ function playPause(){
     //TODO: Change icon when playing or pausing
     if($playing){
         $playing = false;
-        $("#playPause").text("Play");
+        $("#playPause").html('<i class="fa fa-play"></i>');
         return;
     }
     $playing = true;
-    $("#playPause").text("Pause");
+    $("#playPause").html('<i class="fa fa-pause"></i>');
     wordPlayer();
 }
 
@@ -174,6 +193,11 @@ function wordPlayer(){
         $playing = false;
         if(kreederVars.autoAdvance)
             fetchNextPage();
+        else
+        {
+            $('#wordDisplay').html('<button id="extractNextPage" class="btn btn-default">Speed read the next page now!</button>');
+        }
+            
     }    
 }
 
@@ -200,7 +224,10 @@ function hasNextBlock(){
 }
 
 function displayWord(words){
-    $("#wordDisplay").text(words.join(" "));
+    if (words.join(' ') != '')
+        $("#wordDisplay").text(words.join(" "));
+    else
+        $("#wordDisplay").html('<img src="../icons/ajax.svg" />');
 }
 
 var $currentLoc = 0;
@@ -210,6 +237,8 @@ function setLoc(newLoc){
     $currentLoc = newLoc;
     if($oldLoc === $currentLoc){
         setAutoAdvance(false);
+        $('#playPause').click();
+        $('#wordDisplay').text('');
     }        
 }
 
@@ -354,6 +383,19 @@ function updateVariableDisplay(){
     $("#wctDisp").text(kreederVars.wCount);
     $("#fntDisp").text(kreederVars.fontsize);
     document.getElementById('autoAdvance').checked = kreederVars.autoAdvance;
+
+    if (kreederVars.autoAdvance)
+    {
+        $('#autoadvanceon').removeClass('hidden').show();
+        $('#autoadvanceoff').hide();
+
+    }
+    else
+    {
+        $('#autoadvanceoff').removeClass('hidden').show();
+        $('#autoadvanceon').hide();
+    }
+
     $("#wordDisplay").css({'font-size':kreederVars.fontsize + "px"});
     //TODO: refresh font size for display page
 }

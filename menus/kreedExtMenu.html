@@ -4,15 +4,25 @@
         <title>Kreeder: Speed reader for Kindle Cloud Reader</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
         <script src="..\js\jquery-2.1.4.min.js"></script>
         <script src="..\js\kreedExtMenu.js"></script>
-        <link rel="stylesheet" type="text/css" href="..\css\kreedMain.css">        
+        <link rel="stylesheet" type="text/css" href="..\css\kreedMain.css">  
+        
+        <link rel="stylesheet" type="text/css" href="..\css\bootstrap.min.css">    
+            
     </head>
-    <body>
-        <h1>Kreeder</h1>
-        <p>Speed reader for Kindle Cloud Reader</p>
-        <button id="openReader" class="btn">Open Kreeder</button>
-        <button id="about" class="btn">AboutKreeder</button>
+    <body class="extmenu">
+        <h1 class="white">Kreeder</h1>
+        <center>
+            <p class="mbottom15">Speed reader for Kindle Cloud Reader</p>
+        
+            <div class="kindle">
+                <button id="openReader" class="btn btn-primary full-width">Open Kreeder</button>
+                <button id="about" class="btn btn-default full-width">About Kreeder</button>
+            </div>
+            <div class="notkindle">
+                <div class="alert alert-warning" role="alert">Go to <a href="https://read.amazon.com/" target="_blank">read.amazon.com</a> and click on the Kreeder button again.</div>
+            </div>
+        </center>
     </body>
 </html>

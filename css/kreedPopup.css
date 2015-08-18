@@ -9,26 +9,95 @@ and open the template in the editor.
 */
 
 html, body {
-    width: 100%;    
+    min-width: 700px;
+    background-color: #272727 !important; 
+    text-align: center;
+    height: 400px;
 }
 
-body, #footer, #playerControl, #functionButtons{   
+#speedUp, #speedDown{
+    display: inline;
+}
+
+#footer, #playerControl, #functionButtons{   
    text-align: center;
-   width: 600px;
+   width: 100%;
    margin: 0 auto;
 }
 
 #playerControl{
-    width: 425px;
+    width: 100%;
     margin: 0 auto; 
 }
 
 #wordDisplay{
     text-align: center;
     font-size: 45px;
-    font-weight: bold;   
+    font-weight: bold;  
+    color: #FFFFFF; 
     margin: 20px;
     padding-top: 50px;
     padding-bottom: 50px;
 }
 
+#spdDisp, #wctDisp, #fntDisp{
+    padding: 10px;
+}
+.division{
+    width: 25%;
+    float: left;
+    margin: 4%;
+}
+.division b{
+    display: block;
+    padding: 2px;
+}
+.division *{
+    color: #333333;
+}
+.division:hover *{
+    color: #797979 !important;
+}
+.division:hover #spdDisp, .division:hover #wctDisp, .division:hover #fntDisp{
+    color: white !important;
+}
+.division .btn, .footer-kreeder .btn, #extractNextPage{
+    background: none;
+    border: 1px solid #333333;
+    color: #797979;
+}
+.division .btn:hover,.division .btn:focus, .footer-kreeder .btn:hover, .footer-kreeder .btn:focus, #extractNextPage:focus, #extractNextPage:hover{
+    background: #222222;
+    color:white;
+}
+.clr{
+    clear: both;
+}
+
+#Variables, .footer-kreeder{
+    background: #232323;
+    border-bottom:2px solid #252525; 
+}
+.footer-kreeder{
+    border-top:2px solid #252525;
+    padding: 23px;
+    position: fixed;
+    bottom: 0px;
+    left: 0px;
+    right:0px;
+}
+
+.helper{
+    cursor: pointer;
+    opacity: 0.2;
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+}
+.helper:hover{
+    opacity: 0.7;
+}
+
+.hidden{
+    display: none;
+}
