@@ -36,7 +36,7 @@
         "matches": [ "*://*.amazon.com/*"],
         "persistent": false
     },
-    "web_accessible_resources": ["js/contentExtractor.min.js"],
+    "web_accessible_resources": ["js/contentExtractor.js"],
     "options_page": "menus/options.html",
     "commands": {
         "kreed-speed-UP": {
