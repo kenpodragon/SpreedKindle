@@ -244,7 +244,12 @@ function setLoc(newLoc){
 
 function stopPlayback(){
     $playing = false;
+    $("#playPause").html('<i class="fa fa-play"></i>');
     $loc = 0;
+    if(hasNextBlock()){
+        displayWord(getNextWords());
+    }
+    updateVariableDisplay();
 }
 
 function forwardWord(){
