@@ -2,8 +2,6 @@ var $port = chrome.extension.connect(chrome.runtime.id);
 $port.onMessage.addListener(fromBkgJS);
 
 $( document ).ready(function() {
-
-
     $("#nextPage").click(function(){
         fetchNextPage();
     });
