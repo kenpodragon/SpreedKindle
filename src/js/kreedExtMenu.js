@@ -1,5 +1,5 @@
 $( document ).ready(function() {
-    chrome.tabs.query({active:true,currentWindow:true},function(tabArray){ 
+    chrome.tabs.query({active:true,currentWindow:true},function(tabArray){
         var activeTab = tabArray[0].url;
 
         if (activeTab.indexOf('read.amazon') === -1)
