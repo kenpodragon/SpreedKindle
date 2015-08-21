@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "Kreeder - speed reader for Kindle",
     "short_name":"Kreeder",
-    "description": "The one and only speed reading chrome extension for the Kindle Cloud Reader. Love speedreading? Love Kindle books? Now you can have the best of both worlds",
+    "description": "The one and only speed reading chrome extension for the Kindle Cloud Reader. Love speedreading? Love Kindle? Now you can have both.",
     "version": "0.0.0.5",
     "icons": {"16": "icons/icon16.png",
            "48": "icons/icon48.png",
