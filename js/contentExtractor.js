@@ -17,6 +17,11 @@ function processMessage(msg){
         $port.postMessage({type: "ext", contents: extractContents()});
     else if (msg==="loc")
         $port.postMessage({type: "loc", contents: extractLoc()}); 
+    else if (msg==="slider")
+        $port.postMessage({type: "slider", contents: extractPagesBottom()}); 
+    else if (msg.indexOf('-moveTo') > 0)
+        manageGotoPage(msg);
+
 }
 
 function extractContents(){   
@@ -38,12 +43,44 @@ function extractContents(){
     return output;   
 }
 
+function extractPagesBottom(){
+    return $("#kindleReader_footer_message").text();    
+}
+
 function extractLoc(){
     return $("#kindleReader_immersiveFooter").text();    
 }
 
 function goNext(){
     $(".kindleReader_arrowBtn")[1].click();
+}
+
+var gtinterval = '';
+function manageGotoPage(msg){
+    msg = msg.split('-');
+    msg = parseInt(msg[0]);
+    gotoPage(msg);
+
+    setTimeout(function(){
+        gtinterval = setInterval(function(){
+            if (!$('#loading_spinner').is(":visible"))
+            {
+                clearInterval(gtinterval);
+                $port.postMessage({type: "continue", contents: 'continue'}); 
+            }
+        }, 250);
+    }, 250)
+}
+
+function gotoPage(page){
+
+    $('#kindleReader_button_goto').click();
+    $('#kindleReader_goToMenuItem_goToLocation').click();
+    $("#kindleReader_dialog_gotoField").val(page);
+    $('button.ui-button.ui-widget.ui-state-default.ui-corner-all.ui-button-text-only').each(function(){
+        if ($(this).text() == 'Go to location')
+            $(this).click();
+    });
 }
 
 function goPrev(){

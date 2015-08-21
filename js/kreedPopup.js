@@ -1,7 +1,15 @@
 var $port = chrome.extension.connect(chrome.runtime.id);
 $port.onMessage.addListener(fromBkgJS);
+var lastpage = 0;
+var currentpage = 0;
+
 
 $( document ).ready(function() {
+
+
+
+    setSliderPosition($loc);
+
     $("#nextPage").click(function(){
         fetchNextPage();
     });
@@ -79,6 +87,53 @@ function fromBkgJS(msg){
     else if (msg.type ==="loc")
         setLoc(msg.contents);
 }
+
+function changeValueSlider(nv){
+    $('.slider').remove();
+    $('body').append('<input class="slider" type="text" />');
+    setSliderPosition(nv);   
+};
+var sliderhover = true;
+function setSliderPosition(pos){
+    try{
+        var last = $words.length;
+
+
+        if ($('.slider.slider-horizontal').length>0)
+        {
+            changeValue(currentpage);
+            return;
+        }
+
+        $('.slider').removeClass('hidden');
+        $('.slider').slider({
+                                min:1,max:last,value:parseInt(pos),
+                                formater: function(value) {
+                                    return 'Word ' + value +' of '+last;
+                                }
+                            })
+            .on('slideStart', function(ev){
+                
+            })
+            .on('slideStop', function(ev){
+                $(this).slider('setValue', ev.value);
+                $loc = (ev.value)-1;
+
+                displayWord(getNextWords(1));
+            });
+        $('.slider').mouseenter(function(){
+            sliderhover = $playing;
+            if ($playing == true)
+                playPause();
+        }).mouseleave(function(){
+            if ($playing != sliderhover)
+                playPause();
+        });
+
+
+    } catch(err) {
+    }
+};
 
 function processExtractedText(contents){
     //TODO: looks like some words are going missing
@@ -173,7 +228,12 @@ function playPause(){
     wordPlayer();
 }
 
+var wptimer = '';
 function wordPlayer(){
+    if (wptimer)
+        clearTimeout(wptimer);
+    
+
     if(!$playing)
         return;
     if(hasNextBlock()){
@@ -184,7 +244,7 @@ function wordPlayer(){
             dispDelay = dispDelay*(1+PUNCT_DELAY/100);
         displayWord(wordsToDisplay);
         updateVariableDisplay();
-        setTimeout(function(){
+        wptimer = setTimeout(function(){
         wordPlayer(); 
             },dispDelay);
     } else {
@@ -206,7 +266,7 @@ function calculateWPM(){
     return 60*1500 / kreederVars.speed;
 }
 
-function getNextWords(){
+function getNextWords(change){
     var output = [];
     var counter = 1;
     while (counter <= kreederVars.wCount && $loc-1 < $words.length){
@@ -214,18 +274,82 @@ function getNextWords(){
         counter ++;
         $loc ++;
     }
+
+    if (change != 1)
+        changeValueSlider($loc);
+
+
     return output;
 }
 
 function hasNextBlock(){
     return $loc-1 < $words.length;    
 }
-
+String.prototype.replaceAt=function(index, character) {
+    return this.substr(0, index) + character + this.substr(index+1, 9999999);
+}
 function displayWord(words){
     if (words.join(' ') != '')
-        $("#wordDisplay").text(words.join(" "));
+    {
+        var newword = words.join(' ');
+
+    
+        var middle = parseInt(newword.length/2);
+
+        
+        if (newword[middle])
+        {
+            if (newword[middle].match(/[a-z]/i) !== null) 
+            {
+                newword = newword.replaceAt(middle, '</span><span class="centeredw">'+newword[middle]+'</span><span class="rightw">');
+            }
+            else
+            {
+                var replaced = false;
+                if (newword[middle+1])
+                {
+                    if (newword[middle+1].match(/[a-z]/i) !== null) 
+                    {
+                        newword = newword.replaceAt(middle+1, '</span><span class="centeredw">'+newword[middle+1]+'</span><span class="rightw">');
+                        replaced = true;
+                    }
+                }
+                if (newword[middle-1] && !replaced)
+                {
+                    if (newword[middle-1].match(/[a-z]/i) !== null) 
+                    {
+                        newword = newword.replaceAt(middle-1, '</span><span class="centeredw">'+newword[middle-1]+'</span><span class="rightw">');
+                    }    
+                }
+            }
+        }
+
+        newword = newword.replace(' <span class="centeredw">', '&nbsp;<span class="centeredw">');
+        newword = newword.replace(' </span>', '&nbsp;</span>');
+        newword = newword.replace('<span class="rightw"> ', '<span class="rightw">&nbsp;');
+        
+
+        newword = $('<div><span class="leftw">'+newword+'</span></div>');
+        if ($('#wordDisplay table').length >0)
+        {
+            $('#wordDisplay .leftw').html(newword.find('.leftw').html());
+            $("#wordDisplay .centeredw").html(newword.find('.centeredw').html());
+            $('#wordDisplay .rightw').html(newword.find('.rightw').html());
+        }
+        else
+        {
+            newword = "<table border='0' cellspace='0' cellpadding='0' width='100%'><tr><td width='50%' align='right' class='leftw'>"+newword.find('.leftw').html()+"</td><td class='centeredw'>"+newword.find('.centeredw').html()+"</td><td align='left' width='50%' class='rightw'>"+newword.find('.rightw').html()+"</td></tr></table>" ;
+            $("#wordDisplay").html(newword);
+        }
+        
+    }
     else
+    {
+        
         $("#wordDisplay").html('<img src="../icons/ajax.svg" />');
+        
+    }
+        
 }
 
 var $currentLoc = 0;
@@ -242,12 +366,7 @@ function setLoc(newLoc){
 
 function stopPlayback(){
     $playing = false;
-    $("#playPause").html('<i class="fa fa-play"></i>');
     $loc = 0;
-    if(hasNextBlock()){
-        displayWord(getNextWords());
-    }
-    updateVariableDisplay();
 }
 
 function forwardWord(){

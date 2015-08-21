@@ -11,46 +11,64 @@ and open the template in the editor.
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
         <script src="..\js\jquery-2.1.4.min.js"></script>
-        <script src="..\js\kreedPopup.min.js"></script>
-        <link rel="stylesheet" type="text/css" href="..\css\kreedMain.min.css">
-        <link rel="stylesheet" type="text/css" href="..\css\kreedPopup.min.css">        
+        <script src="..\js\kreedPopup.js"></script>
+        <link rel="stylesheet" type="text/css" href="..\css\kreedMain.css">
+        <link rel="stylesheet" type="text/css" href="..\css\kreedPopup.css">        
         <link rel="stylesheet" type="text/css" href="..\css\bootstrap.min.css">    
-        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">    
+        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+
+
+        <script src="..\js\bootstrap-slider.js"></script>
+        <link rel="stylesheet" type="text/css" href="..\css\slider.css">
+        
     </head>
     <body class="main">
-        <div id="Variables"><div class="division">
+        <div id="Variables">
+
+            <div class="division">
                 <b>Speed</b>
                 <button id="speedUp" class="btn btn-default">+</button> 
                 <span id="spdDisp">500</span>
                 <button id="speedDown" class="btn btn-default">-</button>      
             </div>
+
             <div class="division">
                 <b>Word Count</b>
                 <button id="numWordsUp" class="btn btn-default">+</button>         
                 <span id="wctDisp">1</span>
                 <button id="numWordsDown" class="btn btn-default">-</button>   
-            </div><div class="division">
+            </div>
+
+            <div class="division">
                 <b>Font Size</b>
                 <button id="fontBigger" class="btn btn-default">+</button>
                 <span id="fntDisp">20</span>
                 <button id="fontSmaller" class="btn btn-default">-</button>                            
             </div>
+
             <br class="clr" />
+
         </div>
+
         <div id="wordDisplay"><img src="../icons/ajax.svg" /></div>
+        <input class="slider hidden" />
+
         <div class="footer-kreeder">
+
             <span id="playerControl">
                 <button id="previousPage" class="btn btn-default" title="Go to Previous Page"><i class="fa fa-fast-backward"></i></button>
                 <button id="rewindWord" class ="btn btn-default" title="Go to previous word"><i class="fa fa-backward"></i></button>
                 <button id="playPause" class ="btn btn-default" title="Play/Pause"><i class="fa fa-play"></i></button>
-                <button id="stop" class ="btn btn-default"><i class="fa  fa-square-o"></i></button>
                 <button id="forwardWord" class ="btn btn-default" title="Go to next word"><i class="fa fa-forward"></i></button>
                 <button id="nextPage" class="btn btn-default" title="Go to Next Page"><i class="fa fa-fast-forward"></i></button>
                 <button id="autoadvanceon" class="btn btn-default hidden" title="Auto Advance to the Next Page - ON"><i class="fa fa-check-circle-o"></i></button>
                 <button id="autoadvanceoff" class="btn btn-default hidden" title="Auto Advance to the Next Page - OFF"><i class="fa  fa-circle-o"></i></button>
-                
+
+
+                <button id="stop" class ="hidden btn btn-default">STOP</button>
             </span>       
-            <span id="functionButtons">  
+            <span id="functionButtons">                     
+
                 <button id="extractPage" class="btn btn-default hidden">Speed read this page now!</button>
                 <label class="hidden">
                     <input type="checkbox" id="autoAdvance"/>

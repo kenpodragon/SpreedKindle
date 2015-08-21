@@ -1,40 +1,49 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>About Kreeder</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
-        <script src="..\js\jquery-2.1.4.min.js"></script>
-        <script src="..\js\options.min.js"></script>
-        <link rel="stylesheet" type="text/css" href="..\css\kreedMain.min.css">        
-    </head>
-    <body>
-        <h1>Kreeder</h1>
-        <h2>Speed reading plugin for Kindle Cloud Reader.</h2>
-        <h3>To use.</h3>
-        <ol>
-            <li>Go to read.amazon.com</li>
-            <li>Click the Kreeder Icon and click open Kreeder (Alternatively press CTRL+SHIFT+SPACE) to open the reader window</li>
-            <li>Enjoy</li>
-        </ol>        
-        <h3>KNOWN ISSUES:</h3>
-        <ol>
-            <li>Pressing CTRL-SHIFT-SPACE repeatedly opens multiple Kreeder windows. </li>
-            <li>Some issues with text extraction with special characters and non-latin characters (have not tested on non-English books)</li>
-            <li>Books with lots of images, or books with multiple layouts (e.g. Any of the Dummies books with lots of callouts), will end up with text appearing in non-sequential order. Kreeder works best with plain text books (e.g. are the words only on the pages without any special blocks or formatting).</li>
-            <li>Tested on Linux and Windows</li>
-            <li>Windows 10 issue (not just Kreeder) where popup windows are wonky. The reader itself is fine, clicking on the icon gives you a headache.</li>
-        </ol>
-        <h3>VERSION HISTORY</h3>
-        <ul>
-            <li>08/18/2015 - 0.0.0.2 Design changes and content size reduction.</li>
-            <li>08/17/2015 - 0.0.0.1 Initial Release</li>
-        </ul><form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
-            <input type="hidden" name="cmd" value="_s-xclick" />
-            <input type="hidden" name="hosted_button_id" value="JDPVRGSK3GBLQ" />
-            <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" name="submit" alt="PayPal - The safer, easier way to pay online!" />
-            <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1" />
-        </form>                    
-    </body>
+<head>
+    <title>About Kreeder</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+    <script src="..\js\jquery-2.1.4.min.js"></script>
+    <script src="..\js\options.js"></script>
+    <link rel="stylesheet" type="text/css" href="..\css\kreedMain.css">
+</head>
+<body>
+<h1>Kreeder</h1>
+
+<h2>Speed reading plugin for Kindle Cloud Reader.</h2>
+
+<h3>To use.</h3>
+<ol>
+    <li>Go to read.amazon.com</li>
+    <li>Click the Kreeder Icon and click open Kreeder (Alternatively press CTRL+SHIFT+SPACE) to open the reader window
+    </li>
+    <li>Enjoy</li>
+</ol>
+<h3>KNOWN ISSUES:</h3>
+<ol>
+    <li>Pressing CTRL-SHIFT-SPACE (or clicking open Kreeder) repeatedly opens multiple Kreeder windows.</li>
+    <li>Books with lots of images, or books with multiple layouts (e.g. Any of the Dummies books with lots of callouts),
+        will end up with text appearing in non-sequential order. Kreeder works best with plain text books (e.g. are the
+        words only on the pages without any special blocks or formatting).
+    </li>
+    <li>Tested on Linux and Windows</li>
+</ol>
+<h3>VERSION HISTORY</h3>
+<ul>
+    <li>08/21/2015 - 0.0.0.5 Slider Bar Bug Fixes</li>
+    <li>08/20/2015 - 0.0.0.4 Slider Bar Implementation</li>
+    <li>08/19/2015 - 0.0.0.3 Bug Fixes</li>
+    <li>08/18/2015 - 0.0.0.2 Design Changes</li>
+    <li>08/17/2015 - 0.0.0.1 Initial Release</li>
+</ul>
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+    <input type="hidden" name="cmd" value="_s-xclick"/>
+    <input type="hidden" name="hosted_button_id" value="JDPVRGSK3GBLQ"/>
+    <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" name="submit"
+           alt="PayPal - The safer, easier way to pay online!"/>
+    <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1"/>
+</form>
+</body>
 </html>
