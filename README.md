@@ -14,7 +14,7 @@ This is a Chrome extension loaded directly from the source folder — no build t
 
 1. Clone or download this repository:
    ```
-   git clone https://github.com/ApolloIntellact/SpreedKindle.git
+   git clone https://github.com/kenpodragon/SpreedKindle.git
    ```
 2. Open Chrome and navigate to `chrome://extensions`.
 3. Enable **Developer mode** (toggle in the top-right corner).
