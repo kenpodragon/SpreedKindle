@@ -424,7 +424,9 @@ var ocrInitPromise = null;
 function initOCR() {
     if (ocrWorker) return Promise.resolve();
     if (ocrInitPromise) return ocrInitPromise;
-    ocrInitPromise = Tesseract.createWorker('eng', 0, {
+    // OEM 3 (best available) — uses LSTM engine which handles multi-column
+    // layouts better than legacy. Falls back to legacy if needed.
+    ocrInitPromise = Tesseract.createWorker('eng', 3, {
         workerPath: chrome.runtime.getURL('js/tesseract/worker.min.js'),
         corePath: chrome.runtime.getURL('js/tesseract/'),
         langPath: chrome.runtime.getURL('js/tesseract/lang/'),
@@ -441,71 +443,185 @@ function initOCR() {
 
 function runOCR(imageDataUrl) {
     return initOCR().then(function() {
-        return ocrWorker.recognize(imageDataUrl);
-    }).then(function(result) {
-        return reorderColumnsText(result.data);
+        // Detect column layout from image pixels BEFORE running OCR
+        return detectColumnGap(imageDataUrl);
+    }).then(function(gap) {
+        if (gap.isMultiColumn) {
+            // Multi-column: split at the detected gap, OCR each half
+            return splitOCR(imageDataUrl, gap.splitX).then(function(split) {
+                if (split.left && split.right) return split.left + ' ' + split.right;
+                return split.left || split.right || '';
+            });
+        }
+        // Single column: OCR the full image
+        return ocrWorker.recognize(imageDataUrl).then(function(result) {
+            return (result.data.text || '').trim();
+        });
     });
 }
 
-// Detect multi-column layouts from Tesseract block bounding boxes
-// and reorder text so left column is read fully before right column.
-function reorderColumnsText(data) {
-    if (!data.blocks || data.blocks.length <= 1) {
-        return data.text;
-    }
+// Analyze image pixels to detect a column gap — a vertical whitespace
+// strip in the middle of the page where content density drops to near zero.
+// Scans the middle 30-70% of the image and compares content pixel density
+// across vertical strips. Works regardless of background color (light/dark).
+function detectColumnGap(imageDataUrl) {
+    return new Promise(function(resolve) {
+        var img = new Image();
+        img.onload = function() {
+            var w = img.width;
+            var h = img.height;
 
-    // Filter to non-empty blocks
-    var blocks = [];
-    for (var i = 0; i < data.blocks.length; i++) {
-        if (data.blocks[i].text && data.blocks[i].text.trim()) {
-            blocks.push(data.blocks[i]);
+            if (w < 600) {
+                resolve({ isMultiColumn: false });
+                return;
+            }
+
+            var canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            // Determine background color from image corners
+            var bg = sampleBackground(ctx, w, h);
+
+            // Get pixel data for the middle 30-70% of the image
+            var scanLeft = Math.round(w * 0.3);
+            var scanRight = Math.round(w * 0.7);
+            var scanWidth = scanRight - scanLeft;
+            var allPixels = ctx.getImageData(scanLeft, 0, scanWidth, h).data;
+
+            // Sample every Nth column and row for performance
+            var colStep = Math.max(1, Math.round(scanWidth / 100));
+            var rowStep = Math.max(1, Math.round(h / 200));
+
+            var strips = [];
+            var totalDensity = 0;
+
+            for (var col = 0; col < scanWidth; col += colStep) {
+                var contentCount = 0;
+                var rowsSampled = 0;
+
+                for (var row = 0; row < h; row += rowStep) {
+                    var idx = (row * scanWidth + col) * 4;
+                    var dr = Math.abs(allPixels[idx] - bg.r);
+                    var dg = Math.abs(allPixels[idx + 1] - bg.g);
+                    var db = Math.abs(allPixels[idx + 2] - bg.b);
+                    if (dr + dg + db > 80) contentCount++;
+                    rowsSampled++;
+                }
+
+                var density = contentCount / rowsSampled;
+                strips.push({ x: scanLeft + col, density: density });
+                totalDensity += density;
+            }
+
+            if (strips.length === 0) {
+                resolve({ isMultiColumn: false });
+                return;
+            }
+
+            var avgDensity = totalDensity / strips.length;
+
+            // Find the strip with the lowest content density (the gap)
+            var minDensity = Infinity;
+            var gapX = Math.round(w / 2);
+            for (var i = 0; i < strips.length; i++) {
+                if (strips[i].density < minDensity) {
+                    minDensity = strips[i].density;
+                    gapX = strips[i].x;
+                }
+            }
+
+            // Verify content exists on BOTH sides of the gap
+            var leftDensity = 0, rightDensity = 0;
+            var leftN = 0, rightN = 0;
+            for (var i = 0; i < strips.length; i++) {
+                if (strips[i].x < gapX) {
+                    leftDensity += strips[i].density;
+                    leftN++;
+                } else if (strips[i].x > gapX) {
+                    rightDensity += strips[i].density;
+                    rightN++;
+                }
+            }
+            var leftAvg = leftN > 0 ? leftDensity / leftN : 0;
+            var rightAvg = rightN > 0 ? rightDensity / rightN : 0;
+
+            // Multi-column if: clear gap AND meaningful content on both sides
+            var isMultiColumn = avgDensity > 0.02 &&
+                                minDensity < avgDensity * 0.2 &&
+                                leftAvg > 0.02 && rightAvg > 0.02;
+
+            resolve({ isMultiColumn: isMultiColumn, splitX: gapX });
+        };
+        img.onerror = function() {
+            resolve({ isMultiColumn: false });
+        };
+        img.src = imageDataUrl;
+    });
+}
+
+// Sample corner regions to determine the page background color.
+// Works for both light and dark mode Kindle themes.
+function sampleBackground(ctx, w, h) {
+    var rSum = 0, gSum = 0, bSum = 0, count = 0;
+    var size = 20;
+    var corners = [[0, 0], [w - size, 0], [0, h - size], [w - size, h - size]];
+    for (var c = 0; c < corners.length; c++) {
+        var d = ctx.getImageData(corners[c][0], corners[c][1], size, size).data;
+        for (var i = 0; i < d.length; i += 4) {
+            rSum += d[i]; gSum += d[i + 1]; bSum += d[i + 2];
+            count++;
         }
     }
-    if (blocks.length <= 1) return data.text;
+    return {
+        r: Math.round(rSum / count),
+        g: Math.round(gSum / count),
+        b: Math.round(bSum / count)
+    };
+}
 
-    // Find page bounds from block positions
-    var pageLeft = Infinity, pageRight = 0;
-    for (var i = 0; i < blocks.length; i++) {
-        if (blocks[i].bbox.x0 < pageLeft) pageLeft = blocks[i].bbox.x0;
-        if (blocks[i].bbox.x1 > pageRight) pageRight = blocks[i].bbox.x1;
-    }
-    var pageWidth = pageRight - pageLeft;
-    if (pageWidth <= 0) return data.text;
-    var midX = pageLeft + pageWidth / 2;
+// Split image at splitX, OCR each half separately.
+// Returns { left, right } text strings.
+function splitOCR(imageDataUrl, splitX) {
+    return new Promise(function(resolve) {
+        var img = new Image();
+        img.onload = function() {
+            var w = img.width;
+            var h = img.height;
+            var sx = Math.round(splitX);
 
-    // Classify blocks: narrow blocks on left vs right side indicate columns
-    var leftCol = [], rightCol = [];
-    var hasNarrowLeft = false, hasNarrowRight = false;
-    for (var i = 0; i < blocks.length; i++) {
-        var bw = blocks[i].bbox.x1 - blocks[i].bbox.x0;
-        var cx = (blocks[i].bbox.x0 + blocks[i].bbox.x1) / 2;
-        var isNarrow = bw <= pageWidth * 0.6;
+            var leftCanvas = document.createElement('canvas');
+            leftCanvas.width = sx;
+            leftCanvas.height = h;
+            leftCanvas.getContext('2d').drawImage(img, 0, 0, sx, h, 0, 0, sx, h);
 
-        if (isNarrow && cx < midX) hasNarrowLeft = true;
-        if (isNarrow && cx >= midX) hasNarrowRight = true;
+            var rightCanvas = document.createElement('canvas');
+            var rw = w - sx;
+            rightCanvas.width = rw;
+            rightCanvas.height = h;
+            rightCanvas.getContext('2d').drawImage(img, sx, 0, rw, h, 0, 0, rw, h);
 
-        if (cx < midX) {
-            leftCol.push(blocks[i]);
-        } else {
-            rightCol.push(blocks[i]);
-        }
-    }
+            var leftUrl = leftCanvas.toDataURL('image/png');
+            var rightUrl = rightCanvas.toDataURL('image/png');
 
-    // Only reorder if narrow blocks exist on BOTH sides (actual columns)
-    if (!hasNarrowLeft || !hasNarrowRight) {
-        return data.text;
-    }
-
-    // Sort each column top-to-bottom
-    var byY = function(a, b) { return a.bbox.y0 - b.bbox.y0; };
-    leftCol.sort(byY);
-    rightCol.sort(byY);
-
-    // Concatenate: left column fully, then right column fully
-    var parts = [];
-    for (var i = 0; i < leftCol.length; i++) parts.push(leftCol[i].text.trim());
-    for (var i = 0; i < rightCol.length; i++) parts.push(rightCol[i].text.trim());
-    return parts.join(' ');
+            ocrWorker.recognize(leftUrl).then(function(leftResult) {
+                return ocrWorker.recognize(rightUrl).then(function(rightResult) {
+                    resolve({
+                        left: (leftResult.data.text || '').trim(),
+                        right: (rightResult.data.text || '').trim()
+                    });
+                });
+            }).catch(function() {
+                resolve({ left: '', right: '' });
+            });
+        };
+        img.onerror = function() {
+            resolve({ left: '', right: '' });
+        };
+        img.src = imageDataUrl;
+    });
 }
 
 function speedUp(){       

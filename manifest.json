@@ -40,6 +40,8 @@
                 "js/tesseract/worker.min.js",
                 "js/tesseract/tesseract-core.wasm.js",
                 "js/tesseract/tesseract-core-simd.wasm.js",
+                "js/tesseract/tesseract-core-lstm.wasm.js",
+                "js/tesseract/tesseract-core-simd-lstm.wasm.js",
                 "js/tesseract/lang/eng.traineddata.gz"
             ],
             "matches": ["<all_urls>"]
