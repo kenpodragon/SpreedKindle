@@ -2,9 +2,9 @@ var $backPort;
 var $frontPort;
 
 chrome.commands.onCommand.addListener(function(command) {
-    if (command === "kreed-speed-UP")
+    if (command === "kreed-speed-UP" && $frontPort)
         $frontPort.postMessage({type: "spdUp"});
-    else if (command === "kreed-speed-Down")
+    else if (command === "kreed-speed-Down" && $frontPort)
         $frontPort.postMessage({type: "spdDwn"});
     else if (command === "kreed-read-this-page")
         openPopup();
@@ -17,11 +17,20 @@ chrome.runtime.onMessage.addListener(function(request) {
 });
 
 chrome.runtime.onConnect.addListener(function(port) {
+    console.log('Kreeder: port connected:', port.name);
     if (port.name === "content") {
         port.onMessage.addListener(fromBack);
+        port.onDisconnect.addListener(function() {
+            console.log('Kreeder: content port disconnected');
+            $backPort = null;
+        });
         $backPort = port;
     } else if (port.name === "popup") {
         port.onMessage.addListener(fromFront);
+        port.onDisconnect.addListener(function() {
+            console.log('Kreeder: popup port disconnected');
+            $frontPort = null;
+        });
         $frontPort = port;
     }
 });
@@ -53,9 +62,21 @@ function openPopup() {
 }
 
 function fromBack(msg) {
-    $frontPort.postMessage(msg);
+    if ($frontPort) {
+        $frontPort.postMessage(msg);
+    } else {
+        console.warn('Kreeder: no popup port, dropping message from content:', msg.type);
+    }
 }
 
 function fromFront(msg) {
-    $backPort.postMessage(msg);
+    if ($backPort) {
+        $backPort.postMessage(msg);
+    } else {
+        console.warn('Kreeder: no content port, cannot relay:', msg);
+        // Tell the popup the content script isn't connected
+        if ($frontPort) {
+            $frontPort.postMessage({type: "ext", contents: null, error: "content_disconnected"});
+        }
+    }
 }

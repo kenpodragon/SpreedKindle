@@ -1,5 +1,13 @@
-var $port = chrome.runtime.connect({name: "popup"});
-$port.onMessage.addListener(fromBkgJS);
+var $port;
+function connectPopupPort() {
+    $port = chrome.runtime.connect({name: "popup"});
+    $port.onMessage.addListener(fromBkgJS);
+    $port.onDisconnect.addListener(function() {
+        // Service worker restarted — reconnect
+        connectPopupPort();
+    });
+}
+connectPopupPort();
 var lastpage = 0;
 var currentpage = 0;
 
@@ -87,6 +95,8 @@ function fromBkgJS(msg){
             }).catch(function(err) {
                 $("#wordDisplay").html('<span style="color:red">OCR failed: ' + err.message + '</span>');
             });
+        } else if (msg.contents === null && msg.error === "content_disconnected") {
+            $("#wordDisplay").html('<span style="color:orange">Content script not connected. Please refresh the Kindle tab and try again.</span>');
         } else if (msg.contents === null) {
             $("#wordDisplay").html('<span style="color:orange">Could not capture page image. Make sure a book is open.</span>');
         } else if (Array.isArray(msg.contents)) {
@@ -178,25 +188,16 @@ function processExtractedText(contents){
     playPause();
 }
 
-function fetchNextPage(){    
+function fetchNextPage(){
     $playing = false;
-    getMsgFromBack("next");    
-    setTimeout(function(){
-       processNextPage(); 
-    },PAGE_FETCH_TIMEOUT);
+    $("#wordDisplay").html('<img src="../icons/ajax.svg" /><br><small>Loading next page...</small>');
+    getMsgFromBack("next_and_extract");
 }
 
 function fetchPreviousPage(){
     $playing = false;
-    getMsgFromBack("prev");
-    setTimeout(function(){
-       processNextPage(); 
-    },PAGE_FETCH_TIMEOUT);      
-}
-
-function processNextPage(){
-    getCurrentLoc(); 
-    getMsgFromBack("ext");  
+    $("#wordDisplay").html('<img src="../icons/ajax.svg" /><br><small>Loading previous page...</small>');
+    getMsgFromBack("prev_and_extract");
 }
 
 
@@ -416,35 +417,32 @@ var PAGE_FETCH_TIMEOUT = 1500;
 
 // --- Tesseract.js OCR ---
 var ocrWorker = null;
-var ocrInitializing = false;
+var ocrInitPromise = null;
 
 function initOCR() {
-    if (ocrWorker || ocrInitializing) return Promise.resolve();
-    ocrInitializing = true;
-    return Tesseract.createWorker('eng', 0, {
+    if (ocrWorker) return Promise.resolve();
+    if (ocrInitPromise) return ocrInitPromise;
+    ocrInitPromise = Tesseract.createWorker('eng', 0, {
         workerPath: chrome.runtime.getURL('js/tesseract/worker.min.js'),
         corePath: chrome.runtime.getURL('js/tesseract/'),
         langPath: chrome.runtime.getURL('js/tesseract/lang/'),
         workerBlobURL: false
     }).then(function(worker) {
         ocrWorker = worker;
-        ocrInitializing = false;
+        ocrInitPromise = null;
     }).catch(function(err) {
-        ocrInitializing = false;
+        ocrInitPromise = null;
         throw err;
     });
+    return ocrInitPromise;
 }
 
 function runOCR(imageDataUrl) {
-    var doRecognize = function() {
-        return ocrWorker.recognize(imageDataUrl).then(function(result) {
-            return result.data.text;
-        });
-    };
-    if (ocrWorker) {
-        return doRecognize();
-    }
-    return initOCR().then(doRecognize);
+    return initOCR().then(function() {
+        return ocrWorker.recognize(imageDataUrl);
+    }).then(function(result) {
+        return result.data.text;
+    });
 }
 
 function speedUp(){       

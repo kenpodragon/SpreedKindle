@@ -1,14 +1,26 @@
 // Content script for Kindle Cloud Reader — captures page images for OCR
 // Only initialize in the top frame (no iframe injection needed)
 if (window === window.top) {
-    window.addEventListener("load", myMain, false);
+    if (document.readyState === 'complete') {
+        myMain();
+    } else {
+        window.addEventListener("load", myMain, false);
+    }
 }
 
 var $port;
 
 function myMain(evt) {
+    connectContentPort();
+}
+
+function connectContentPort() {
     $port = chrome.runtime.connect({name: "content"});
     $port.onMessage.addListener(processMessage);
+    $port.onDisconnect.addListener(function() {
+        // Service worker restarted — reconnect
+        connectContentPort();
+    });
 }
 
 function processMessage(msg) {
@@ -18,6 +30,10 @@ function processMessage(msg) {
         goPrev();
     else if (msg === "ext")
         capturePageImage();
+    else if (msg === "next_and_extract")
+        navigateAndCapture("next");
+    else if (msg === "prev_and_extract")
+        navigateAndCapture("prev");
     else if (msg === "loc")
         $port.postMessage({type: "loc", contents: extractLoc()});
     else if (msg === "slider")
@@ -83,4 +99,40 @@ function goNext() {
 function goPrev() {
     var btn = document.getElementById('kr-chevron-left');
     if (btn) btn.click();
+}
+
+// Navigate to next/prev page, then poll until a new image is ready before capturing
+var navPollInterval = null;
+function navigateAndCapture(direction) {
+    // Remember current image src so we can detect when it changes
+    var container = document.querySelector('div.kg-full-page-img');
+    var currentImg = container ? container.querySelector('img') : null;
+    var currentSrc = currentImg ? currentImg.src : '';
+
+    // Click the navigation button
+    if (direction === "next") goNext();
+    else goPrev();
+
+    // Poll until the image changes and is fully loaded
+    var attempts = 0;
+    var maxAttempts = 30; // 30 * 300ms = 9 seconds max wait
+    if (navPollInterval) clearInterval(navPollInterval);
+
+    navPollInterval = setInterval(function() {
+        attempts++;
+        var newContainer = document.querySelector('div.kg-full-page-img');
+        var newImg = newContainer ? newContainer.querySelector('img') : null;
+
+        if (newImg && newImg.complete && newImg.naturalWidth > 0 && newImg.src !== currentSrc) {
+            // New image is loaded — capture it
+            clearInterval(navPollInterval);
+            navPollInterval = null;
+            capturePageImage();
+        } else if (attempts >= maxAttempts) {
+            // Timed out — try to capture whatever is there
+            clearInterval(navPollInterval);
+            navPollInterval = null;
+            capturePageImage();
+        }
+    }, 300);
 }
