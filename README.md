@@ -4,6 +4,9 @@ A Chrome extension that adds [RSVP (Rapid Serial Visual Presentation)](https://e
 
 Inspired by [SwiftRead](https://chromewebstore.google.com/detail/swiftread-read-faster-lea/ipikiaejjblmdopojhpejjmbedhlibno).
 
+CURRENT BUILD CHROME STORE INSTALL LINK:
+[Kreeder](https://chromewebstore.google.com/detail/kcidkkkenhfbgbfafekfbghfmomohffl/)
+
 ## How It Works
 
 Kindle Cloud Reader renders book pages as images, not selectable text. Kreeder captures those page images and uses [Tesseract.js](https://github.com/naptha/tesseract.js) (an in-browser OCR engine) to extract the text. The extracted text is then fed into the RSVP reader for speed-reading playback.
@@ -14,7 +17,7 @@ This is a Chrome extension loaded directly from the source folder — no build t
 
 1. Clone or download this repository:
    ```
-   git clone https://github.com/ApolloIntellact/SpreedKindle.git
+   git clone https://github.com/kenpodragon/SpreedKindle.git
    ```
 2. Open Chrome and navigate to `chrome://extensions`.
 3. Enable **Developer mode** (toggle in the top-right corner).
