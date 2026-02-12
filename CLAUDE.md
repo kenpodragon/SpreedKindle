@@ -104,6 +104,7 @@ Words are split into left/center/right segments. The center character is highlig
 
 ## Known Issues
 
+- Listed in the TODO: Section of the `README.md` file.
 - Pressing shortcut repeatedly can open multiple reader windows
 - OCR accuracy depends on page rendering quality and font clarity
 - OCR processing takes 3-8 seconds per page

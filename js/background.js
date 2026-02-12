@@ -3,9 +3,9 @@ var $frontPort;
 
 chrome.commands.onCommand.addListener(function(command) {
     if (command === "kreed-speed-UP" && $frontPort)
-        $frontPort.postMessage({type: "spdUp"});
+        safeSend($frontPort, {type: "spdUp"});
     else if (command === "kreed-speed-Down" && $frontPort)
-        $frontPort.postMessage({type: "spdDwn"});
+        safeSend($frontPort, {type: "spdDwn"});
     else if (command === "kreed-read-this-page")
         openPopup();
 });
@@ -61,9 +61,20 @@ function openPopup() {
     });
 }
 
+function safeSend(port, msg) {
+    try {
+        port.postMessage(msg);
+    } catch (e) {
+        // Port moved to bfcache or disconnected
+        console.warn('Kreeder: port send failed:', e.message);
+        return false;
+    }
+    return true;
+}
+
 function fromBack(msg) {
     if ($frontPort) {
-        $frontPort.postMessage(msg);
+        safeSend($frontPort, msg);
     } else {
         console.warn('Kreeder: no popup port, dropping message from content:', msg.type);
     }
@@ -71,12 +82,16 @@ function fromBack(msg) {
 
 function fromFront(msg) {
     if ($backPort) {
-        $backPort.postMessage(msg);
+        if (!safeSend($backPort, msg)) {
+            $backPort = null;
+            if ($frontPort) {
+                safeSend($frontPort, {type: "ext", contents: null, error: "content_disconnected"});
+            }
+        }
     } else {
         console.warn('Kreeder: no content port, cannot relay:', msg);
-        // Tell the popup the content script isn't connected
         if ($frontPort) {
-            $frontPort.postMessage({type: "ext", contents: null, error: "content_disconnected"});
+            safeSend($frontPort, {type: "ext", contents: null, error: "content_disconnected"});
         }
     }
 }

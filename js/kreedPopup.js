@@ -443,8 +443,69 @@ function runOCR(imageDataUrl) {
     return initOCR().then(function() {
         return ocrWorker.recognize(imageDataUrl);
     }).then(function(result) {
-        return result.data.text;
+        return reorderColumnsText(result.data);
     });
+}
+
+// Detect multi-column layouts from Tesseract block bounding boxes
+// and reorder text so left column is read fully before right column.
+function reorderColumnsText(data) {
+    if (!data.blocks || data.blocks.length <= 1) {
+        return data.text;
+    }
+
+    // Filter to non-empty blocks
+    var blocks = [];
+    for (var i = 0; i < data.blocks.length; i++) {
+        if (data.blocks[i].text && data.blocks[i].text.trim()) {
+            blocks.push(data.blocks[i]);
+        }
+    }
+    if (blocks.length <= 1) return data.text;
+
+    // Find page bounds from block positions
+    var pageLeft = Infinity, pageRight = 0;
+    for (var i = 0; i < blocks.length; i++) {
+        if (blocks[i].bbox.x0 < pageLeft) pageLeft = blocks[i].bbox.x0;
+        if (blocks[i].bbox.x1 > pageRight) pageRight = blocks[i].bbox.x1;
+    }
+    var pageWidth = pageRight - pageLeft;
+    if (pageWidth <= 0) return data.text;
+    var midX = pageLeft + pageWidth / 2;
+
+    // Classify blocks: narrow blocks on left vs right side indicate columns
+    var leftCol = [], rightCol = [];
+    var hasNarrowLeft = false, hasNarrowRight = false;
+    for (var i = 0; i < blocks.length; i++) {
+        var bw = blocks[i].bbox.x1 - blocks[i].bbox.x0;
+        var cx = (blocks[i].bbox.x0 + blocks[i].bbox.x1) / 2;
+        var isNarrow = bw <= pageWidth * 0.6;
+
+        if (isNarrow && cx < midX) hasNarrowLeft = true;
+        if (isNarrow && cx >= midX) hasNarrowRight = true;
+
+        if (cx < midX) {
+            leftCol.push(blocks[i]);
+        } else {
+            rightCol.push(blocks[i]);
+        }
+    }
+
+    // Only reorder if narrow blocks exist on BOTH sides (actual columns)
+    if (!hasNarrowLeft || !hasNarrowRight) {
+        return data.text;
+    }
+
+    // Sort each column top-to-bottom
+    var byY = function(a, b) { return a.bbox.y0 - b.bbox.y0; };
+    leftCol.sort(byY);
+    rightCol.sort(byY);
+
+    // Concatenate: left column fully, then right column fully
+    var parts = [];
+    for (var i = 0; i < leftCol.length; i++) parts.push(leftCol[i].text.trim());
+    for (var i = 0; i < rightCol.length; i++) parts.push(rightCol[i].text.trim());
+    return parts.join(' ');
 }
 
 function speedUp(){       

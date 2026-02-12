@@ -15,13 +15,26 @@ function myMain(evt) {
 }
 
 function connectContentPort() {
-    $port = chrome.runtime.connect({name: "content"});
+    try {
+        $port = chrome.runtime.connect({name: "content"});
+    } catch (e) {
+        // Extension context invalidated — nothing we can do
+        return;
+    }
     $port.onMessage.addListener(processMessage);
     $port.onDisconnect.addListener(function() {
-        // Service worker restarted — reconnect
+        // Service worker restarted or bfcache — reconnect
+        $port = null;
         connectContentPort();
     });
 }
+
+// Reconnect port when page is restored from bfcache
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted && !$port) {
+        connectContentPort();
+    }
+});
 
 function processMessage(msg) {
     if (msg === "next")
@@ -35,16 +48,24 @@ function processMessage(msg) {
     else if (msg === "prev_and_extract")
         navigateAndCapture("prev");
     else if (msg === "loc")
-        $port.postMessage({type: "loc", contents: extractLoc()});
+        safeSendContent({type: "loc", contents: extractLoc()});
     else if (msg === "slider")
-        $port.postMessage({type: "slider", contents: extractPagesBottom()});
+        safeSendContent({type: "slider", contents: extractPagesBottom()});
+}
+
+function safeSendContent(msg) {
+    try {
+        if ($port) $port.postMessage(msg);
+    } catch (e) {
+        // Port disconnected (bfcache, service worker restart, etc.)
+    }
 }
 
 function capturePageImage() {
     // Find the Kindle page image rendered as a blob
     var container = document.querySelector('div.kg-full-page-img');
     if (!container) {
-        $port.postMessage({type: "ext", contents: null});
+        safeSendContent({type: "ext", contents: null});
         return;
     }
 
@@ -54,7 +75,7 @@ function capturePageImage() {
         img = container.querySelector('img');
     }
     if (!img || !img.complete || img.naturalWidth === 0) {
-        $port.postMessage({type: "ext", contents: null});
+        safeSendContent({type: "ext", contents: null});
         return;
     }
 
@@ -66,10 +87,10 @@ function capturePageImage() {
         var ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
         var dataUrl = canvas.toDataURL('image/png');
-        $port.postMessage({type: "ext", contents: dataUrl});
+        safeSendContent({type: "ext", contents: dataUrl});
     } catch (e) {
         // Canvas tainted (cross-origin blob) — send null so popup can fallback
-        $port.postMessage({type: "ext", contents: null});
+        safeSendContent({type: "ext", contents: null});
     }
 }
 
@@ -129,7 +150,7 @@ function navigateAndCapture(direction) {
 
     if (!clicked) {
         // Navigation button not found — report back
-        $port.postMessage({type: "ext", contents: null, error: "nav_button_not_found"});
+        safeSendContent({type: "ext", contents: null, error: "nav_button_not_found"});
         return;
     }
 
