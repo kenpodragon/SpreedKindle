@@ -2,41 +2,40 @@ var $backPort;
 var $frontPort;
 
 chrome.commands.onCommand.addListener(function(command) {
-    if(command==="kreed-speed-UP")
+    if (command === "kreed-speed-UP")
         $frontPort.postMessage({type: "spdUp"});
-    else if(command==="kreed-speed-Down")
+    else if (command === "kreed-speed-Down")
         $frontPort.postMessage({type: "spdDwn"});
-    else if(command==="kreed-read-this-page")
+    else if (command === "kreed-read-this-page")
         openPopup();
 });
 
-var kreedPopup=-1;
+var kreedPopup = -1;
 chrome.runtime.onMessage.addListener(function(request) {
-    if (request.type === 'open_kreeder') 
-        openPopup();   
+    if (request.type === 'open_kreeder')
+        openPopup();
 });
 
-chrome.runtime.onConnectExternal.addListener(function(port) {
-    port.onMessage.addListener(fromBack); 
-    $backPort = port;    
+chrome.runtime.onConnect.addListener(function(port) {
+    if (port.name === "content") {
+        port.onMessage.addListener(fromBack);
+        $backPort = port;
+    } else if (port.name === "popup") {
+        port.onMessage.addListener(fromFront);
+        $frontPort = port;
+    }
 });
 
-chrome.extension.onConnect.addListener(function(port) {
-    port.onMessage.addListener(fromFront); 
-    $frontPort = port;    
-});
-
-function openPopup(){
-    //TODO: figure out why the window_list isn't working (might be unix)
-    chrome.windows.getAll({}, function(window_list) {            
-        for (var chromeWindow in window_list) {               
-            if(chromeWindow.id === kreedPopup) {
+function openPopup() {
+    chrome.windows.getAll({}, function(window_list) {
+        for (var i = 0; i < window_list.length; i++) {
+            if (window_list[i].id === kreedPopup) {
                 chrome.windows.update(kreedPopup, {focused: true});
                 return;
             }
         }
         chrome.tabs.create({
-            url: chrome.extension.getURL('menus/kreedPopup.html'),
+            url: chrome.runtime.getURL('menus/kreedPopup.html'),
             active: false
         }, function(tab) {
             chrome.windows.create({
@@ -46,17 +45,17 @@ function openPopup(){
                 width: 700,
                 height: 500
             },
-            function(chromeWindow) {                    
+            function(chromeWindow) {
                 kreedPopup = chromeWindow.id;
             });
         });
     });
 }
 
-function fromBack(msg){        
-    $frontPort.postMessage(msg);    
+function fromBack(msg) {
+    $frontPort.postMessage(msg);
 }
 
-function fromFront(msg){   
+function fromFront(msg) {
     $backPort.postMessage(msg);
 }

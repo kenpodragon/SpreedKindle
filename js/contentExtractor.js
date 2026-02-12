@@ -1,88 +1,86 @@
-// The ID of the extension we want to talk to.
-window.addEventListener("load", myMain, false);
+// Content script for Kindle Cloud Reader — captures page images for OCR
+// Only initialize in the top frame (no iframe injection needed)
+if (window === window.top) {
+    window.addEventListener("load", myMain, false);
+}
 
 var $port;
 
-function myMain(evt) {    
-    $port = chrome.runtime.connect(editorExtensionId);
-    $port.onMessage.addListener(processMessage);      
-};
+function myMain(evt) {
+    $port = chrome.runtime.connect({name: "content"});
+    $port.onMessage.addListener(processMessage);
+}
 
-function processMessage(msg){    
-    if(msg==="next")
-        goNext(); 
-    else if (msg==="prev")
+function processMessage(msg) {
+    if (msg === "next")
+        goNext();
+    else if (msg === "prev")
         goPrev();
-    else if (msg==="ext")
-        $port.postMessage({type: "ext", contents: extractContents()});
-    else if (msg==="loc")
-        $port.postMessage({type: "loc", contents: extractLoc()}); 
-    else if (msg==="slider")
-        $port.postMessage({type: "slider", contents: extractPagesBottom()}); 
-    else if (msg.indexOf('-moveTo') > 0)
-        manageGotoPage(msg);
-
+    else if (msg === "ext")
+        capturePageImage();
+    else if (msg === "loc")
+        $port.postMessage({type: "loc", contents: extractLoc()});
+    else if (msg === "slider")
+        $port.postMessage({type: "slider", contents: extractPagesBottom()});
 }
 
-function extractContents(){   
-    var output = new Array();    
-    $('div#kindleReader_content').find('iframe').each(function(){        
-        var visible = $(this)[0].style.visibility;
-        var height = parseFloat($(this)[0].style.height);
-        if(visible === 'visible')
-            $(this).contents().find('.k4w').each(function(){
-                //Get the parent body top value
-                //Get the span offsetHeight
-                //Calculate to see if it is in range
-                //TODO: Find where the current page starts and stops
-                //TODO: Only return the displayed text
-                if($(this).offset().top>=0&&$(this).offset().top<=(height-$(this)[0].offsetHeight))                    
-                    output.push($(this).text());                
-            });
-    });        
-    return output;   
+function capturePageImage() {
+    // Find the Kindle page image rendered as a blob
+    var container = document.querySelector('div.kg-full-page-img');
+    if (!container) {
+        $port.postMessage({type: "ext", contents: null});
+        return;
+    }
+
+    var img = container.querySelector('img[src^="blob:"]');
+    if (!img) {
+        // Fallback: try any img inside the container
+        img = container.querySelector('img');
+    }
+    if (!img || !img.complete || img.naturalWidth === 0) {
+        $port.postMessage({type: "ext", contents: null});
+        return;
+    }
+
+    // Draw the image to a canvas to get a data URL
+    try {
+        var canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        var dataUrl = canvas.toDataURL('image/png');
+        $port.postMessage({type: "ext", contents: dataUrl});
+    } catch (e) {
+        // Canvas tainted (cross-origin blob) — send null so popup can fallback
+        $port.postMessage({type: "ext", contents: null});
+    }
 }
 
-function extractPagesBottom(){
-    return $("#kindleReader_footer_message").text();    
+function extractPagesBottom() {
+    // Try new Kindle reader footer, fall back to old selector
+    var el = document.getElementById('kindleReader_footer_message');
+    if (!el) {
+        // Look for any page progress indicator
+        el = document.querySelector('[class*="page-progress"], [class*="location"]');
+    }
+    return el ? el.textContent : '';
 }
 
-function extractLoc(){
-    return $("#kindleReader_immersiveFooter").text();    
+function extractLoc() {
+    var el = document.getElementById('kindleReader_immersiveFooter');
+    if (!el) {
+        el = document.querySelector('[class*="footer"], [class*="location"]');
+    }
+    return el ? el.textContent : '';
 }
 
-function goNext(){
-    $(".kindleReader_arrowBtn")[1].click();
+function goNext() {
+    var btn = document.getElementById('kr-chevron-right');
+    if (btn) btn.click();
 }
 
-var gtinterval = '';
-function manageGotoPage(msg){
-    msg = msg.split('-');
-    msg = parseInt(msg[0]);
-    gotoPage(msg);
-
-    setTimeout(function(){
-        gtinterval = setInterval(function(){
-            if (!$('#loading_spinner').is(":visible"))
-            {
-                clearInterval(gtinterval);
-                $port.postMessage({type: "continue", contents: 'continue'}); 
-            }
-        }, 250);
-    }, 250)
-}
-
-function gotoPage(page){
-
-    $('#kindleReader_button_goto').click();
-    $('#kindleReader_goToMenuItem_goToLocation').click();
-    $("#kindleReader_dialog_gotoField").val(page);
-    $('button.ui-button.ui-widget.ui-state-default.ui-corner-all.ui-button-text-only').each(function(){
-        if ($(this).text() == 'Go to location')
-            $(this).click();
-    });
-}
-
-function goPrev(){
-    $(".kindleReader_arrowBtn")[0].click();
+function goPrev() {
+    var btn = document.getElementById('kr-chevron-left');
+    if (btn) btn.click();
 }

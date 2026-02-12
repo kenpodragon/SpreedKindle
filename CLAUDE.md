@@ -7,13 +7,16 @@ Chrome extension that adds RSVP (Rapid Serial Visual Presentation) speed reading
 ## Tech Stack
 
 - **Vanilla JavaScript** — no TypeScript, no build tools, no bundler
-- **jQuery 2.1.4** — DOM manipulation
+- **jQuery 2.1.4** — DOM manipulation (popup UI only)
+- **Tesseract.js v5** — OCR engine for extracting text from rendered page images
 - **Bootstrap 3** — UI framework + slider component
-- **Chrome Extension Manifest v2** (persistent: false event page)
-- **Chrome APIs**: `chrome.runtime`, `chrome.tabs`, `chrome.windows`, `chrome.storage.sync`, `chrome.commands`, `chrome.extension`
+- **Chrome Extension Manifest V3** (service worker background)
+- **Chrome APIs**: `chrome.runtime`, `chrome.tabs`, `chrome.windows`, `chrome.storage.sync`, `chrome.commands`
 - All dependencies are vendored in-tree (no package.json, no npm)
 
 ## Architecture
+
+Kindle Cloud Reader renders book pages as blob images (`div.kg-full-page-img > img`), not DOM text. The extension captures these images and uses Tesseract.js OCR to extract text.
 
 ```
 Extension Icon Click → kreedExtMenu.html (popup)
@@ -22,21 +25,22 @@ Extension Icon Click → kreedExtMenu.html (popup)
     → kreedPopup.js connects to background.js via port
     → sends "ext" message to extract content
     → background.js relays to contentExtractor.js (content script)
-    → contentExtractor.js extracts text from Kindle iframe DOM
-    → text returned → kreedPopup.js displays words via RSVP
+    → contentExtractor.js captures page image as base64 data URL
+    → image returned → kreedPopup.js runs Tesseract.js OCR
+    → extracted text processed → RSVP word display
 ```
 
 ### Key Components
 
 | File | Role |
 |------|------|
-| `manifest.json` | Extension config, permissions, commands, content script registration |
-| `js/background.js` | Message router, popup window lifecycle, keyboard shortcut handler |
-| `js/contentscript.js` | Minimal injector — loads contentExtractor.js into page context |
-| `js/contentExtractor.js` | Extracts text from Kindle Cloud Reader iframes (`.k4w` elements), handles page navigation |
-| `js/kreedPopup.js` | Main RSVP reader engine — playback, speed control, word display, state, settings persistence |
+| `manifest.json` | Extension config, permissions, commands, CSP for WebAssembly |
+| `js/background.js` | Service worker — message router, popup window lifecycle, keyboard shortcut handler |
+| `js/contentExtractor.js` | Content script — captures page blob images, handles page navigation (`#kr-chevron-left`/`#kr-chevron-right`) |
+| `js/kreedPopup.js` | Main RSVP reader engine — OCR processing, playback, speed control, word display, settings persistence |
 | `js/kreedExtMenu.js` | Extension icon popup menu logic |
-| `menus/kreedPopup.html` | Reader window markup |
+| `js/tesseract/` | Vendored Tesseract.js v5 — OCR engine, WASM core, worker, English language data |
+| `menus/kreedPopup.html` | Reader window markup (loads Tesseract.js + jQuery + kreedPopup.js) |
 | `menus/kreedExtMenu.html` | Extension icon popup markup |
 | `menus/options.html` | About/options page |
 
@@ -47,10 +51,36 @@ SpreedKindle/
 ├── manifest.json
 ├── css/                  # Stylesheets (bootstrap, kreedMain, kreedPopup, slider)
 ├── icons/                # Extension icons and UI assets
-├── js/                   # All JavaScript (vendor libs + extension code)
+├── js/                   # Extension JavaScript
+│   ├── tesseract/        # Vendored Tesseract.js v5 OCR engine
+│   │   ├── tesseract.min.js
+│   │   ├── worker.min.js
+│   │   ├── tesseract-core.wasm.js
+│   │   ├── tesseract-core-simd.wasm.js
+│   │   └── lang/eng.traineddata.gz
+│   ├── background.js
+│   ├── contentExtractor.js
+│   ├── kreedPopup.js
+│   └── kreedExtMenu.js
 ├── menus/                # HTML pages (popup menu, reader window, options)
 └── screenshots/          # Chrome Web Store screenshots
 ```
+
+## Kindle Page Selectors
+
+- **Page image**: `div.kg-full-page-img > img[src^="blob:"]`
+- **Next page**: `#kr-chevron-right`
+- **Previous page**: `#kr-chevron-left`
+
+## OCR Pipeline
+
+1. Content script captures blob image → draws to canvas → `toDataURL('image/png')`
+2. Base64 data URL sent via port message to popup
+3. Popup runs Tesseract.js OCR (legacy mode, `oem: 0`) with persistent worker
+4. OCR text fed into `processExtractedText()` → existing word cleanup/splitting pipeline
+5. RSVP playback begins automatically
+
+OCR worker is initialized once on popup load and reused for all pages.
 
 ## Code Conventions
 
@@ -59,7 +89,7 @@ SpreedKindle/
 - **UPPER_CASE** for constants: `SPEED_INC`, `MAX_LIMIT`, `PUNCT_PATTERN`
 - **camelCase** for functions: `getNextWords()`, `speedUp()`, `displayWord()`
 - **Hyphenated** CSS classes: `footer-kreeder`, `slider-horizontal`
-- Port-based message passing between content script, background, and popup
+- Named port-based message passing: content script connects as `"content"`, popup as `"popup"`
 - Settings persisted via `chrome.storage.sync` with fallback defaults
 
 ## RSVP Display Technique
@@ -72,10 +102,11 @@ Words are split into left/center/right segments. The center character is highlig
 - `Ctrl+Shift+Down` — Speed down
 - `Ctrl+Shift+Space` — Start reading current page
 
-## Known Issues (from options.html)
+## Known Issues
 
 - Pressing shortcut repeatedly can open multiple reader windows
-- Books with heavy formatting/images may display text out of order
+- OCR accuracy depends on page rendering quality and font clarity
+- OCR processing takes 3-8 seconds per page
 - Works best with plain text-heavy books
 
 ## No Build Step

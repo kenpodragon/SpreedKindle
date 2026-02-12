@@ -1,4 +1,4 @@
-var $port = chrome.extension.connect(chrome.runtime.id);
+var $port = chrome.runtime.connect({name: "popup"});
 $port.onMessage.addListener(fromBkgJS);
 var lastpage = 0;
 var currentpage = 0;
@@ -77,9 +77,23 @@ function getMsgFromBack(option){
     $port.postMessage(option);    
 }
 
-function fromBkgJS(msg){    
-    if(msg.type==="ext")   
-        processExtractedText(msg.contents);
+function fromBkgJS(msg){
+    if(msg.type==="ext") {
+        if (typeof msg.contents === 'string' && msg.contents.indexOf('data:image/') === 0) {
+            // Image data URL — run OCR to extract text
+            $("#wordDisplay").html('<img src="../icons/ajax.svg" /><br><small>Running OCR...</small>');
+            runOCR(msg.contents).then(function(text) {
+                processExtractedText([text]);
+            }).catch(function(err) {
+                $("#wordDisplay").html('<span style="color:red">OCR failed: ' + err.message + '</span>');
+            });
+        } else if (msg.contents === null) {
+            $("#wordDisplay").html('<span style="color:orange">Could not capture page image. Make sure a book is open.</span>');
+        } else if (Array.isArray(msg.contents)) {
+            // Legacy: direct text array
+            processExtractedText(msg.contents);
+        }
+    }
     else if (msg.type ==="spdUp")
         speedUp();
     else if (msg.type ==="spdDwn")
@@ -192,11 +206,11 @@ function getCurrentPageContents(){
         return;
 
     interval = setInterval(function(){
-        if ($('#wordDisplay').text() != '')
+        if ($('#wordDisplay').text() != '' && $('#wordDisplay').text().indexOf('OCR') === -1)
             clearInterval(interval);
-        else
+        else if ($('#wordDisplay').text().indexOf('OCR') === -1)
             getMsgFromBack("ext");
-    }, 1000);
+    }, 2000);
 
     getMsgFromBack("ext");
         
@@ -398,7 +412,40 @@ var MIN_FONT_SIZE = 1;
 var WCOUNT_INC = 1;
 var MAX_WCONT = 5;
 var MIN_WCONT = 1;
-var PAGE_FETCH_TIMEOUT = 500;
+var PAGE_FETCH_TIMEOUT = 1500;
+
+// --- Tesseract.js OCR ---
+var ocrWorker = null;
+var ocrInitializing = false;
+
+function initOCR() {
+    if (ocrWorker || ocrInitializing) return Promise.resolve();
+    ocrInitializing = true;
+    return Tesseract.createWorker('eng', 0, {
+        workerPath: chrome.runtime.getURL('js/tesseract/worker.min.js'),
+        corePath: chrome.runtime.getURL('js/tesseract/'),
+        langPath: chrome.runtime.getURL('js/tesseract/lang/'),
+        workerBlobURL: false
+    }).then(function(worker) {
+        ocrWorker = worker;
+        ocrInitializing = false;
+    }).catch(function(err) {
+        ocrInitializing = false;
+        throw err;
+    });
+}
+
+function runOCR(imageDataUrl) {
+    var doRecognize = function() {
+        return ocrWorker.recognize(imageDataUrl).then(function(result) {
+            return result.data.text;
+        });
+    };
+    if (ocrWorker) {
+        return doRecognize();
+    }
+    return initOCR().then(doRecognize);
+}
 
 function speedUp(){       
     kreederVars.speed += SPEED_INC;
@@ -523,4 +570,10 @@ function updateVariableDisplay(){
 }
 
 document.addEventListener('DOMContentLoaded', load_options);
-document.addEventListener('DOMContentLoaded', getCurrentPageContents);
+document.addEventListener('DOMContentLoaded', function() {
+    // Pre-initialize OCR worker so it's ready when the first page arrives
+    initOCR().catch(function(err) {
+        console.error('Kreeder: OCR init failed', err);
+    });
+    getCurrentPageContents();
+});
