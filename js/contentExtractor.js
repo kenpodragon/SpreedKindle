@@ -104,7 +104,7 @@ function simulateClick(element) {
 }
 
 function goNext() {
-    var btn = document.getElementById('kr-chevron-right');
+    var btn = document.querySelector('[aria-label="Next Page"]') || document.getElementById('kr-chevron-right');  
     if (btn) {
         simulateClick(btn);
         return true;
@@ -113,7 +113,7 @@ function goNext() {
 }
 
 function goPrev() {
-    var btn = document.getElementById('kr-chevron-left');
+    var btn = document.querySelector('[aria-label="Previous Page"]') || document.getElementById('kr-chevron-left');         
     if (btn) {
         simulateClick(btn);
         return true;
