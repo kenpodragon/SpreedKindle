@@ -11,6 +11,10 @@ chrome.commands.onCommand.addListener(function(command) {
 });
 
 var kreedPopup = -1;
+chrome.action.onClicked.addListener(function() {
+    openPopup();
+});
+
 chrome.runtime.onMessage.addListener(function(request) {
     if (request.type === 'open_kreeder')
         openPopup();
