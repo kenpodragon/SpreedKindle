@@ -4,7 +4,7 @@
     "short_name": "Kreeder",
     "description": "The one and only speed reading chrome extension for the Kindle Cloud Reader. Love speedreading? Love Kindle? Now you can have both.",
     "homepage_url": "https://does-god-exist.org/kreeder/",
-    "version": "0.0.0.8",
+    "version": "0.0.1.0",
     "icons": {
         "16": "icons/icon16.png",
         "48": "icons/icon48.png",
