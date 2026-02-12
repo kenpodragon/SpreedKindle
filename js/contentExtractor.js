@@ -47,6 +47,8 @@ function processMessage(msg) {
         navigateAndCapture("next");
     else if (msg === "prev_and_extract")
         navigateAndCapture("prev");
+    else if (msg === "prefetch_next")
+        prefetchCapture("next");
     else if (msg === "loc")
         safeSendContent({type: "loc", contents: extractLoc()});
     else if (msg === "slider")
@@ -140,6 +142,47 @@ function goPrev() {
         return true;
     }
     return false;
+}
+
+// Navigate and capture for prefetch — identical to navigateAndCapture
+// but responds with {type: "prefetch"} so popup can distinguish
+// prefetch responses from normal extraction responses.
+function prefetchCapture(direction) {
+    var clicked;
+    if (direction === "next") clicked = goNext();
+    else clicked = goPrev();
+
+    if (!clicked) {
+        safeSendContent({type: "prefetch", contents: null, error: "nav_button_not_found"});
+        return;
+    }
+
+    setTimeout(function() {
+        var container = document.querySelector('div.kg-full-page-img');
+        if (!container) {
+            safeSendContent({type: "prefetch", contents: null});
+            return;
+        }
+
+        var img = container.querySelector('img[src^="blob:"]');
+        if (!img) img = container.querySelector('img');
+        if (!img || !img.complete || img.naturalWidth === 0) {
+            safeSendContent({type: "prefetch", contents: null});
+            return;
+        }
+
+        try {
+            var canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            var dataUrl = canvas.toDataURL('image/png');
+            safeSendContent({type: "prefetch", contents: dataUrl});
+        } catch (e) {
+            safeSendContent({type: "prefetch", contents: null});
+        }
+    }, 2000);
 }
 
 // Navigate to next/prev page, wait for render, then capture

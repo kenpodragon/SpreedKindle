@@ -106,6 +106,49 @@ function fromBkgJS(msg){
             processExtractedText(msg.contents);
         }
     }
+    else if (msg.type === "prefetch") {
+        $prefetchNavigated = true;
+
+        if (typeof msg.contents === 'string' && msg.contents.indexOf('data:image/') === 0) {
+            runOCR(msg.contents).then(function(text) {
+                $prefetchedText = text;
+                $prefetching = false;
+
+                if ($waitingForPrefetch) {
+                    $waitingForPrefetch = false;
+                    usePrefetchedWords();
+                }
+            }).catch(function(err) {
+                console.error('Kreeder: prefetch OCR failed', err);
+                $prefetching = false;
+                $prefetchedText = null;
+
+                if ($waitingForPrefetch) {
+                    $waitingForPrefetch = false;
+                    $("#wordDisplay").html('<img src="../icons/ajax.svg" /><br><small>Running OCR...</small>');
+                    getMsgFromBack("ext");
+                }
+            });
+        } else {
+            // Image capture failed
+            console.warn('Kreeder: prefetch capture failed', msg.error || 'no image');
+            $prefetching = false;
+            $prefetchedText = null;
+            if (msg.error === "nav_button_not_found") {
+                $prefetchNavigated = false;
+            }
+
+            if ($waitingForPrefetch) {
+                $waitingForPrefetch = false;
+                if ($prefetchNavigated) {
+                    $("#wordDisplay").html('<img src="../icons/ajax.svg" /><br><small>Loading next page...</small>');
+                    getMsgFromBack("ext");
+                } else {
+                    fetchNextPage();
+                }
+            }
+        }
+    }
     else if (msg.type ==="spdUp")
         speedUp();
     else if (msg.type ==="spdDwn")
@@ -162,6 +205,7 @@ function setSliderPosition(pos){
 };
 
 function processExtractedText(contents){
+    clearPrefetchState();
     //TODO: looks like some words are going missing
     $words = contents.join(" ")
         .replace(/[\u2018\u2019\u201A]/g, "\'")
@@ -193,13 +237,32 @@ function processExtractedText(contents){
 function fetchNextPage(){
     $playing = false;
     $("#wordDisplay").html('<img src="../icons/ajax.svg" /><br><small>Loading next page...</small>');
-    getMsgFromBack("next_and_extract");
+
+    if ($prefetchNavigated) {
+        // Kindle already on next page from prefetch — just capture it
+        clearPrefetchState();
+        getMsgFromBack("ext");
+    } else {
+        clearPrefetchState();
+        getMsgFromBack("next_and_extract");
+    }
 }
 
 function fetchPreviousPage(){
     $playing = false;
     $("#wordDisplay").html('<img src="../icons/ajax.svg" /><br><small>Loading previous page...</small>');
-    getMsgFromBack("prev_and_extract");
+
+    if ($prefetchNavigated) {
+        // Kindle is one page ahead — go back twice: undo prefetch + actual previous
+        clearPrefetchState();
+        getMsgFromBack("prev");
+        setTimeout(function() {
+            getMsgFromBack("prev_and_extract");
+        }, 2000);
+    } else {
+        clearPrefetchState();
+        getMsgFromBack("prev_and_extract");
+    }
 }
 
 
@@ -207,6 +270,17 @@ var interval = '';
 function getCurrentPageContents(){
     if($playing===true && $('#wordDisplay').text() != '')
         return;
+
+    if ($prefetchNavigated) {
+        getMsgFromBack("prev");
+        clearPrefetchState();
+        setTimeout(function() {
+            getMsgFromBack("ext");
+        }, 2000);
+        return;
+    }
+
+    clearPrefetchState();
 
     interval = setInterval(function(){
         if ($('#wordDisplay').text() != '' && $('#wordDisplay').text().indexOf('OCR') === -1)
@@ -216,7 +290,7 @@ function getCurrentPageContents(){
     }, 2000);
 
     getMsgFromBack("ext");
-        
+
 }
 
 function getCurrentLoc(){
@@ -254,6 +328,11 @@ function wordPlayer(){
     if(!$playing)
         return;
     if(hasNextBlock()){
+        // Trigger prefetch at threshold
+        if ($words.length > 0 && $loc / $words.length >= PREFETCH_THRESHOLD) {
+            triggerPrefetch();
+        }
+
         //TODO: formula corrections
         var dispDelay = calculateWPM();
         var wordsToDisplay = getNextWords();
@@ -262,17 +341,28 @@ function wordPlayer(){
         displayWord(wordsToDisplay);
         updateVariableDisplay();
         wptimer = setTimeout(function(){
-        wordPlayer(); 
+        wordPlayer();
             },dispDelay);
     } else {
         $playing = false;
-        if(kreederVars.autoAdvance)
-            fetchNextPage();
+        if(kreederVars.autoAdvance) {
+            if ($prefetchedText) {
+                // Prefetch ready — instant page transition
+                usePrefetchedWords();
+            } else if ($prefetching) {
+                // Prefetch in progress — wait for it
+                $waitingForPrefetch = true;
+                $("#wordDisplay").html('<img src="../icons/ajax.svg" /><br><small>Loading next page...</small>');
+            } else {
+                // No prefetch — fall back to normal behavior
+                fetchNextPage();
+            }
+        }
         else
         {
             $('#wordDisplay').html('<button id="extractNextPage" class="btn btn-default">Speed read the next page now!</button>');
         }
-            
+
     }    
 }
 
@@ -384,6 +474,11 @@ function setLoc(newLoc){
 function stopPlayback(){
     $playing = false;
     $loc = 0;
+
+    if ($prefetchNavigated) {
+        getMsgFromBack("prev");
+    }
+    clearPrefetchState();
 }
 
 function forwardWord(){
@@ -416,6 +511,37 @@ var WCOUNT_INC = 1;
 var MAX_WCONT = 5;
 var MIN_WCONT = 1;
 var PAGE_FETCH_TIMEOUT = 1500;
+var PREFETCH_THRESHOLD = 0.9;
+
+// --- Prefetch state ---
+var $prefetchedText = null;     // Pre-OCR'd raw text for next page
+var $prefetching = false;       // Currently fetching/OCR'ing next page
+var $prefetchNavigated = false; // Kindle tab has been navigated ahead for prefetch
+var $prefetchTriggered = false; // Prefetch already triggered for this page
+var $waitingForPrefetch = false;// Page ended but prefetch not ready yet
+
+function clearPrefetchState() {
+    $prefetchedText = null;
+    $prefetching = false;
+    $prefetchNavigated = false;
+    $prefetchTriggered = false;
+    $waitingForPrefetch = false;
+}
+
+function triggerPrefetch() {
+    if ($prefetching || $prefetchedText || $prefetchTriggered) return;
+    if (!kreederVars.autoAdvance) return;
+
+    $prefetchTriggered = true;
+    $prefetching = true;
+    getMsgFromBack("prefetch_next");
+}
+
+function usePrefetchedWords() {
+    var text = $prefetchedText;
+    clearPrefetchState();
+    processExtractedText([text]);
+}
 
 // --- Tesseract.js OCR ---
 var ocrWorker = null;
@@ -479,7 +605,7 @@ function detectColumnGap(imageDataUrl) {
             var canvas = document.createElement('canvas');
             canvas.width = w;
             canvas.height = h;
-            var ctx = canvas.getContext('2d');
+            var ctx = canvas.getContext('2d', { willReadFrequently: true });
             ctx.drawImage(img, 0, 0);
 
             // Determine background color from image corners
@@ -695,9 +821,17 @@ function setForeground(color){
 }
 */
 
-function setAutoAdvance(value){    
-    kreederVars.autoAdvance = value;    
+function setAutoAdvance(value){
+    kreederVars.autoAdvance = value;
     chrome.storage.sync.set({ autoAdvance: kreederVars.autoAdvance});
+
+    if (!value && ($prefetching || $prefetchedText)) {
+        if ($prefetchNavigated) {
+            getMsgFromBack("prev");
+        }
+        clearPrefetchState();
+    }
+
     updateVariableDisplay();
 }
 
