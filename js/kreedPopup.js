@@ -97,6 +97,8 @@ function fromBkgJS(msg){
             });
         } else if (msg.contents === null && msg.error === "content_disconnected") {
             $("#wordDisplay").html('<span style="color:orange">Content script not connected. Please refresh the Kindle tab and try again.</span>');
+        } else if (msg.contents === null && msg.error === "nav_button_not_found") {
+            $("#wordDisplay").html('<span style="color:orange">Navigation button not found on page. Is a book open?</span>');
         } else if (msg.contents === null) {
             $("#wordDisplay").html('<span style="color:orange">Could not capture page image. Make sure a book is open.</span>');
         } else if (Array.isArray(msg.contents)) {

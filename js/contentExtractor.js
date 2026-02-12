@@ -91,48 +91,50 @@ function extractLoc() {
     return el ? el.textContent : '';
 }
 
+function simulateClick(element) {
+    var rect = element.getBoundingClientRect();
+    var x = rect.left + rect.width / 2;
+    var y = rect.top + rect.height / 2;
+    var opts = {bubbles: true, cancelable: true, view: window, clientX: x, clientY: y};
+    element.dispatchEvent(new PointerEvent('pointerdown', opts));
+    element.dispatchEvent(new MouseEvent('mousedown', opts));
+    element.dispatchEvent(new PointerEvent('pointerup', opts));
+    element.dispatchEvent(new MouseEvent('mouseup', opts));
+    element.dispatchEvent(new MouseEvent('click', opts));
+}
+
 function goNext() {
     var btn = document.getElementById('kr-chevron-right');
-    if (btn) btn.click();
+    if (btn) {
+        simulateClick(btn);
+        return true;
+    }
+    return false;
 }
 
 function goPrev() {
     var btn = document.getElementById('kr-chevron-left');
-    if (btn) btn.click();
+    if (btn) {
+        simulateClick(btn);
+        return true;
+    }
+    return false;
 }
 
-// Navigate to next/prev page, then poll until a new image is ready before capturing
-var navPollInterval = null;
+// Navigate to next/prev page, wait for render, then capture
 function navigateAndCapture(direction) {
-    // Remember current image src so we can detect when it changes
-    var container = document.querySelector('div.kg-full-page-img');
-    var currentImg = container ? container.querySelector('img') : null;
-    var currentSrc = currentImg ? currentImg.src : '';
+    var clicked;
+    if (direction === "next") clicked = goNext();
+    else clicked = goPrev();
 
-    // Click the navigation button
-    if (direction === "next") goNext();
-    else goPrev();
+    if (!clicked) {
+        // Navigation button not found — report back
+        $port.postMessage({type: "ext", contents: null, error: "nav_button_not_found"});
+        return;
+    }
 
-    // Poll until the image changes and is fully loaded
-    var attempts = 0;
-    var maxAttempts = 30; // 30 * 300ms = 9 seconds max wait
-    if (navPollInterval) clearInterval(navPollInterval);
-
-    navPollInterval = setInterval(function() {
-        attempts++;
-        var newContainer = document.querySelector('div.kg-full-page-img');
-        var newImg = newContainer ? newContainer.querySelector('img') : null;
-
-        if (newImg && newImg.complete && newImg.naturalWidth > 0 && newImg.src !== currentSrc) {
-            // New image is loaded — capture it
-            clearInterval(navPollInterval);
-            navPollInterval = null;
-            capturePageImage();
-        } else if (attempts >= maxAttempts) {
-            // Timed out — try to capture whatever is there
-            clearInterval(navPollInterval);
-            navPollInterval = null;
-            capturePageImage();
-        }
-    }, 300);
+    // Wait for the page to render the new image, then capture
+    setTimeout(function() {
+        capturePageImage();
+    }, 2000);
 }
